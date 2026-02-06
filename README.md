@@ -1,10 +1,12 @@
 # Kest
 
+![Kest – Kubernetes E2E testing designed for humans and AI alike](social-preview.svg)
+
 > **Preview Release** -- Kest is currently in `0.x` preview. The API may change based on feedback. Breaking changes can occur in any `0.x` release. A stable `1.0.0` will be released once the API solidifies. Feel free to [open an issue](https://github.com/appthrust/kest/issues/new) if you have any feedback.
 
-**TypeScript-first E2E testing framework for Kubernetes**
+**Kubernetes E2E testing designed for humans and AI alike**
 
-Kest makes it easy to write reliable end-to-end tests for Kubernetes controllers, operators, and admission webhooks. You write test scenarios in TypeScript with full type safety, autocompletion, and the familiar `expect()` API.
+Kest makes it easy to write reliable end-to-end tests for Kubernetes controllers, operators, and admission webhooks. You write test scenarios in TypeScript with full type safety, autocompletion, and the familiar `expect()` API. When a test fails, Kest generates structured Markdown reports that are easy for humans to scan and for AI assistants to parse -- making troubleshooting straightforward regardless of who (or what) is debugging.
 
 ```ts
 import { expect } from "bun:test";

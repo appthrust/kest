@@ -1,7 +1,7 @@
 {
   "name": "@appthrust/kest",
   "version": "0.1.1",
-  "description": "TypeScript-first E2E testing framework for Kubernetes controllers, operators, and webhooks",
+  "description": "Kubernetes E2E testing framework designed for humans and AI alike",
   "type": "module",
   "module": "ts/index.ts",
   "exports": {
