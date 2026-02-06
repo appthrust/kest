@@ -1,0 +1,37 @@
+# https://taskfile.dev
+
+version: "3"
+
+vars:
+  GREETING: Hello, World!
+  CLUSTER_NAME: kest-test
+
+tasks:
+  up:
+    cmds:
+      - kind create cluster --name {{.CLUSTER_NAME}}-cluster-1
+      - kind create cluster --name {{.CLUSTER_NAME}}-cluster-2
+      - kind create cluster --name {{.CLUSTER_NAME}}-cluster-3
+      - kubectl config use-context kind-{{.CLUSTER_NAME}}-cluster-1
+
+  down:
+    cmds:
+      - kind delete cluster --name {{.CLUSTER_NAME}}-cluster-1
+      - kind delete cluster --name {{.CLUSTER_NAME}}-cluster-2
+      - kind delete cluster --name {{.CLUSTER_NAME}}-cluster-3
+
+  test:
+    cmds:
+      - bun test ts/
+
+  lint:
+    cmds:
+      - bunx @biomejs/biome check
+
+  lint:fix:
+    cmds:
+      - bunx @biomejs/biome check --write
+
+  typecheck:
+    cmds:
+      - bunx tsc --noEmit

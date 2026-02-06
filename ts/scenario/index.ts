@@ -1,0 +1,220 @@
+import { apply } from "../actions/apply";
+import { applyNamespace } from "../actions/apply-namespace";
+import { applyStatus } from "../actions/apply-status";
+import { assert } from "../actions/assert";
+import { assertList } from "../actions/assert-list";
+import { exec } from "../actions/exec";
+import { get } from "../actions/get";
+import type { MutateDef, OneWayMutateDef, QueryDef } from "../actions/types";
+import type {
+  ActionOptions,
+  Cluster,
+  ClusterReference,
+  Namespace,
+  Scenario,
+} from "../apis";
+import bdd from "../bdd";
+import type { Kubectl } from "../kubectl";
+import type { Recorder } from "../recording";
+import type { Reporter } from "../reporter/interface";
+import { retryUntil } from "../retry";
+import type { Reverting } from "../reverting";
+
+export interface InternalScenario extends Scenario {
+  cleanup(): Promise<void>;
+  getReport(): Promise<string>;
+}
+
+export function createScenario(deps: CreateScenarioOptions): InternalScenario {
+  const { recorder, reporter, reverting } = deps;
+  recorder.record("ScenarioStarted", { name: deps.name });
+  return {
+    apply: createMutateFn(deps, apply),
+    applyStatus: createOneWayMutateFn(deps, applyStatus),
+    exec: createMutateFn(deps, exec),
+    get: createQueryFn(deps, get),
+    assert: createQueryFn(deps, assert),
+    assertList: createQueryFn(deps, assertList),
+    given: bdd.given(deps),
+    when: bdd.when(deps),
+    // biome-ignore lint/suspicious/noThenProperty: BDD DSL uses `then()` method name
+    then: bdd.then(deps),
+    and: bdd.and(deps),
+    but: bdd.but(deps),
+    newNamespace: createNewNamespaceFn(deps),
+    useCluster: createUseClusterFn(deps),
+    async cleanup() {
+      await reverting.revert();
+    },
+    async getReport() {
+      return await reporter.report(recorder.getEvents());
+    },
+  };
+}
+
+interface CreateScenarioOptions {
+  readonly name: string;
+  readonly recorder: Recorder;
+  readonly kubectl: Kubectl;
+  readonly reverting: Reverting;
+  readonly reporter: Reporter;
+}
+
+const createMutateFn =
+  <
+    const Action extends MutateDef<Input, Output>,
+    Input = Action extends MutateDef<infer I, infer _> ? I : never,
+    Output = Action extends MutateDef<infer _, infer O> ? O : never,
+  >(
+    deps: CreateScenarioOptions,
+    action: Action
+  ) =>
+  async (
+    input: Input,
+    options?: undefined | ActionOptions
+  ): Promise<Output> => {
+    const { recorder, kubectl, reverting } = deps;
+    const { type, name, mutate } = action;
+    recorder.record("ActionStart", { action: name, phase: type });
+    const fn = mutate({ kubectl });
+    let mutateErr: unknown;
+    try {
+      const { revert, output } = await retryUntil(() => fn(input), {
+        ...options,
+        recorder,
+      });
+      reverting.add(async () => {
+        recorder.record("ActionStart", { action: name, phase: "revert" });
+        let revertErr: unknown;
+        try {
+          await revert();
+        } catch (err) {
+          revertErr = err;
+          throw err;
+        } finally {
+          recorder.record("ActionEnd", {
+            action: name,
+            phase: "revert",
+            ok: revertErr === undefined,
+            error: revertErr as Error,
+          });
+        }
+      });
+      return output;
+    } catch (error) {
+      mutateErr = error;
+      throw error;
+    } finally {
+      recorder.record("ActionEnd", {
+        action: name,
+        phase: type,
+        ok: mutateErr === undefined,
+        error: mutateErr as Error,
+      });
+    }
+  };
+
+const createOneWayMutateFn =
+  <
+    const Action extends OneWayMutateDef<Input, Output>,
+    Input = Action extends OneWayMutateDef<infer I, infer _> ? I : never,
+    Output = Action extends OneWayMutateDef<infer _, infer O> ? O : never,
+  >(
+    deps: CreateScenarioOptions,
+    action: Action
+  ) =>
+  async (
+    input: Input,
+    options?: undefined | ActionOptions
+  ): Promise<Output> => {
+    const { recorder, kubectl } = deps;
+    const { name, mutate } = action;
+    recorder.record("ActionStart", { action: name, phase: "mutate" });
+    const fn = mutate({ kubectl });
+    let mutateErr: unknown;
+    try {
+      return await retryUntil(() => fn(input), { ...options, recorder });
+    } catch (error) {
+      mutateErr = error;
+      throw error;
+    } finally {
+      recorder.record("ActionEnd", {
+        action: name,
+        phase: "mutate",
+        ok: mutateErr === undefined,
+        error: mutateErr as Error,
+      });
+    }
+  };
+
+const createQueryFn =
+  <
+    const Action extends QueryDef<Input, Output>,
+    Input = Action extends QueryDef<infer I, infer _> ? I : never,
+    Output = Action extends QueryDef<infer _, infer O> ? O : never,
+  >(
+    deps: CreateScenarioOptions,
+    action: Action
+  ) =>
+  async (
+    input: Input,
+    options?: undefined | ActionOptions
+  ): Promise<Output> => {
+    const { recorder, kubectl } = deps;
+    const { type, name, query } = action;
+    recorder.record("ActionStart", { action: name, phase: type });
+    const fn = query({ kubectl });
+    try {
+      return await retryUntil(() => fn(input), { ...options, recorder });
+    } catch (error) {
+      recorder.record("ActionEnd", {
+        action: name,
+        phase: type,
+        ok: false,
+        error: error as Error,
+      });
+      throw error;
+    }
+  };
+
+const createNewNamespaceFn =
+  (scenarioDeps: CreateScenarioOptions) =>
+  async (
+    name?: undefined | string,
+    options?: undefined | ActionOptions
+  ): Promise<Namespace> => {
+    const namespaceName = await createMutateFn(scenarioDeps, applyNamespace)(
+      name,
+      options
+    );
+    const { kubectl } = scenarioDeps;
+    const namespacedKubectl = kubectl.extends({ namespace: namespaceName });
+    const namespacedDeps = { ...scenarioDeps, kubectl: namespacedKubectl };
+    return {
+      apply: createMutateFn(namespacedDeps, apply),
+      applyStatus: createOneWayMutateFn(namespacedDeps, applyStatus),
+      get: createQueryFn(namespacedDeps, get),
+      assert: createQueryFn(namespacedDeps, assert),
+      assertList: createQueryFn(namespacedDeps, assertList),
+    };
+  };
+
+const createUseClusterFn =
+  (scenarioDeps: CreateScenarioOptions) =>
+  // biome-ignore lint/suspicious/useAwait: 将来的にクラスターの接続確認などを行うため、今から async を使用する
+  async (cluster: ClusterReference): Promise<Cluster> => {
+    const { kubectl } = scenarioDeps;
+    const clusterKubectl = kubectl.extends({
+      context: cluster.context,
+      kubeconfig: cluster.kubeconfig,
+    });
+    const clusterDeps = { ...scenarioDeps, kubectl: clusterKubectl };
+    return {
+      apply: createMutateFn(clusterDeps, apply),
+      applyStatus: createOneWayMutateFn(clusterDeps, applyStatus),
+      get: createQueryFn(clusterDeps, get),
+      assert: createQueryFn(clusterDeps, assert),
+      assertList: createQueryFn(clusterDeps, assertList),
+      newNamespace: createNewNamespaceFn(clusterDeps),
+    };
+  };

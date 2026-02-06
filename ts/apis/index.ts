@@ -1,0 +1,788 @@
+import type { $ as BunDollar } from "bun";
+
+/**
+ * Kest public APIs.
+ *
+ * This module defines the TypeScript types for Kest's scenario DSL.
+ *
+ * A {@link Scenario} represents a single run (usually a single test) and exposes
+ * high-level actions for interacting with Kubernetes. Most actions are executed
+ * with built-in retries: when an action throws, Kest retries it until it
+ * succeeds or {@link ActionOptions.timeout} elapses.
+ *
+ * Some actions also register cleanup ("revert") handlers which run during
+ * scenario cleanup. For example, {@link Scenario.apply} registers a revert that
+ * deletes the applied resource. One-way mutations such as
+ * {@link Scenario.applyStatus} do not register a revert.
+ */
+
+/**
+ * Scenario-level DSL.
+ *
+ * A scenario is the top-level entrypoint for interacting with Kubernetes during
+ * a test run.
+ */
+export interface Scenario {
+  // Basic actions
+
+  /**
+   * Applies a Kubernetes manifest with `kubectl apply`.
+   *
+   * The manifest is validated and then applied. When the action succeeds, Kest
+   * registers a cleanup handler that deletes the resource using
+   * `kubectl delete <kind>/<metadata.name>` during scenario cleanup.
+   *
+   * This action is retried when it throws.
+   *
+   * @template T - The expected Kubernetes resource shape.
+   * @param manifest - YAML string, resource object, or imported YAML module.
+   * @param options - Retry options such as timeout and polling interval.
+   *
+   * @example
+   * ```ts
+   * await s.apply({
+   *   apiVersion: "v1",
+   *   kind: "ConfigMap",
+   *   metadata: { name: "my-config" },
+   *   data: { mode: "demo" },
+   * });
+   * ```
+   */
+  apply<T extends K8sResource>(
+    manifest: ApplyingManifest<T>,
+    options?: undefined | ActionOptions
+  ): Promise<void>;
+
+  /**
+   * Applies the `status` subresource using server-side apply.
+   *
+   * Internally, this uses:
+   * `kubectl apply --server-side --subresource=status ...`
+   *
+   * The provided manifest must include `status`. This is useful for tests that
+   * need to simulate controllers by manually setting conditions/fields in
+   * `status`.
+   *
+   * This action is retried when it throws.
+   *
+   * Note: this is a one-way mutation and does not register a cleanup handler.
+   *
+   * @template T - The expected Kubernetes resource shape.
+   * @param manifest - Resource object that includes a `status` field.
+   * @param options - Retry options such as timeout and polling interval.
+   *
+   * @example
+   * ```ts
+   * await s.applyStatus({
+   *   apiVersion: "example.com/v1",
+   *   kind: "HelloWorld",
+   *   metadata: { name: "my-hello-world" },
+   *   status: {
+   *     conditions: [{ type: "Ready", status: "True" }],
+   *   },
+   * });
+   * ```
+   */
+  applyStatus<T extends K8sResource>(
+    manifest: ApplyingManifest<T>,
+    options?: undefined | ActionOptions
+  ): Promise<void>;
+
+  /**
+   * Fetches a Kubernetes resource and returns it as a typed object.
+   *
+   * This is a convenience wrapper over {@link Scenario.assert} that verifies the
+   * fetched resource has the expected `apiVersion`, `kind`, and `metadata.name`.
+   *
+   * This action is retried when it throws.
+   *
+   * @template T - The expected Kubernetes resource shape.
+   * @param resource - Group/version/kind and name of the resource to fetch.
+   * @param options - Retry options such as timeout and polling interval.
+   *
+   * @example
+   * ```ts
+   * type ConfigMap = {
+   *   apiVersion: "v1";
+   *   kind: "ConfigMap";
+   *   metadata: { name: string };
+   *   data?: Record<string, string>;
+   * };
+   *
+   * const cm = await s.get<ConfigMap>({
+   *   apiVersion: "v1",
+   *   kind: "ConfigMap",
+   *   name: "my-config",
+   * });
+   * ```
+   */
+  get<T extends K8sResource>(
+    resource: K8sResourceReference<T>,
+    options?: undefined | ActionOptions
+  ): Promise<T>;
+
+  /**
+   * Fetches a Kubernetes resource and runs a test function against it.
+   *
+   * The `test` callback is invoked with `this` bound to the fetched resource.
+   * If the callback throws (or rejects), the assertion fails and the whole
+   * action is retried until it succeeds or times out.
+   *
+   * @template T - The expected Kubernetes resource shape.
+   * @param resource - Resource selector and test callback.
+   * @param options - Retry options such as timeout and polling interval.
+   *
+   * @example
+   * ```ts
+   * await s.assert({
+   *   apiVersion: "v1",
+   *   kind: "ConfigMap",
+   *   name: "my-config",
+   *   test() {
+   *     // `this` is the fetched ConfigMap
+   *     expect(this.data?.mode).toBe("demo");
+   *   },
+   * });
+   * ```
+   */
+  assert<T extends K8sResource>(
+    resource: ResourceTest<T>,
+    options?: undefined | ActionOptions
+  ): Promise<T>;
+
+  /**
+   * Lists Kubernetes resources of a given type and runs a test function.
+   *
+   * The `test` callback is invoked with `this` bound to the fetched list.
+   * If the callback throws (or rejects), the assertion fails and the whole
+   * action is retried until it succeeds or times out.
+   *
+   * @template T - The expected Kubernetes resource shape.
+   * @param resource - Group/version/kind selector and list test callback.
+   * @param options - Retry options such as timeout and polling interval.
+   *
+   * @example
+   * ```ts
+   * await s.assertList({
+   *   apiVersion: "v1",
+   *   kind: "ConfigMap",
+   *   test() {
+   *     // `this` is the fetched ConfigMap[]
+   *     const names = this.map((r) => r.metadata.name);
+   *     expect(names.includes("my-config")).toBe(true);
+   *   },
+   * });
+   * ```
+   */
+  assertList<T extends K8sResource>(
+    resource: ResourceListTest<T>,
+    options?: undefined | ActionOptions
+  ): Promise<Array<T>>;
+
+  /**
+   * Creates a new namespace and returns a namespaced API surface.
+   *
+   * When `name` is omitted, a unique namespace name is generated (e.g.
+   * `kest-abc12`). The namespace creation is a mutating action that registers a
+   * cleanup handler; the namespace is deleted during scenario cleanup.
+   *
+   * @param name - Optional namespace name to create.
+   * @param options - Retry options such as timeout and polling interval.
+   *
+   * @example
+   * ```ts
+   * const ns = await s.newNamespace();
+   * await ns.apply({
+   *   apiVersion: "v1",
+   *   kind: "ConfigMap",
+   *   metadata: { name: "my-config" },
+   *   data: { mode: "namespaced" },
+   * });
+   * ```
+   */
+  newNamespace(
+    name?: undefined | string,
+    options?: undefined | ActionOptions
+  ): Promise<Namespace>;
+
+  // Shell command actions
+
+  /**
+   * Executes an arbitrary async function within the scenario.
+   *
+   * This is useful for glue code that doesn't fit into other actions (e.g.
+   * preparing fixtures, calling external tools, or making HTTP requests).
+   *
+   * If `input.revert` is provided, it will be called during scenario cleanup.
+   * The `do` function may be retried when it throws, so it should be written to
+   * be safe to re-run (idempotent) whenever possible.
+   *
+   * The execution context provides Bun Shell `$` for running commands.
+   *
+   * @see https://bun.com/docs/runtime/shell
+   *
+   * @template T - Value produced by the `do` function.
+   * @param input - Execution function and optional cleanup handler.
+   * @param options - Retry options such as timeout and polling interval.
+   *
+   * @example
+   * ```ts
+   * const out = await s.exec({
+   *   do: async ({ $ }) => {
+   *     const result = await $`echo hello`;
+   *     return result.text();
+   *   },
+   *   revert: async ({ $ }) => {
+   *     await $`echo cleanup`;
+   *   },
+   * });
+   * ```
+   */
+  exec<T>(input: ExecInput<T>, options?: undefined | ActionOptions): Promise<T>;
+
+  // Multi-cluster actions
+
+  /**
+   * Creates a cluster-bound API surface.
+   *
+   * The returned {@link Cluster} uses the provided kubeconfig/context for all
+   * actions. It does not create any resources by itself.
+   *
+   * @param cluster - Target kubeconfig and/or context.
+   *
+   * @example
+   * ```ts
+   * const c = await s.useCluster({ context: "kind-kind" });
+   * const ns = await c.newNamespace("my-ns");
+   * await ns.apply({
+   *   apiVersion: "v1",
+   *   kind: "ConfigMap",
+   *   metadata: { name: "my-config" },
+   *   data: { mode: "cluster" },
+   * });
+   * ```
+   */
+  useCluster(cluster: ClusterReference): Promise<Cluster>;
+
+  // BDD(behavior-driven development) actions
+
+  /**
+   * Records a "Given" step for reporting.
+   *
+   * This does not affect execution; it is used by reporters to render readable
+   * test output.
+   *
+   * @example
+   * ```ts
+   * s.given("a namespace exists");
+   * ```
+   */
+  given(description: string): void;
+
+  /**
+   * Records a "When" step for reporting.
+   *
+   * @example
+   * ```ts
+   * s.when("apply a ConfigMap");
+   * ```
+   */
+  when(description: string): void;
+
+  /**
+   * Records a "Then" step for reporting.
+   *
+   * @example
+   * ```ts
+   * s.then("the ConfigMap is present");
+   * ```
+   */
+  then(description: string): void;
+
+  /**
+   * Records an "And" step for reporting.
+   *
+   * @example
+   * ```ts
+   * s.and("it has expected data");
+   * ```
+   */
+  and(description: string): void;
+
+  /**
+   * Records a "But" step for reporting.
+   *
+   * @example
+   * ```ts
+   * s.but("it is not modified by other tests");
+   * ```
+   */
+  but(description: string): void;
+}
+
+/**
+ * Cluster-bound API surface.
+ *
+ * This is equivalent to {@link Scenario} basic actions, but with kubectl context
+ * bound to a specific Kubernetes cluster.
+ */
+export interface Cluster {
+  /**
+   * Applies a Kubernetes manifest with `kubectl apply` and registers cleanup.
+   *
+   * @template T - The expected Kubernetes resource shape.
+   * @param manifest - YAML string, resource object, or imported YAML module.
+   * @param options - Retry options such as timeout and polling interval.
+   *
+   * @example
+   * ```ts
+   * await cluster.apply({
+   *   apiVersion: "v1",
+   *   kind: "Namespace",
+   *   metadata: { name: "my-team" },
+   * });
+   * ```
+   */
+  apply<T extends K8sResource>(
+    manifest: ApplyingManifest<T>,
+    options?: undefined | ActionOptions
+  ): Promise<void>;
+
+  /**
+   * Applies the `status` subresource using server-side apply.
+   *
+   * @template T - The expected Kubernetes resource shape.
+   * @param manifest - Resource object that includes a `status` field.
+   * @param options - Retry options such as timeout and polling interval.
+   *
+   * @example
+   * ```ts
+   * await cluster.applyStatus({
+   *   apiVersion: "example.com/v1",
+   *   kind: "HelloWorld",
+   *   metadata: { name: "my-hello-world" },
+   *   status: { conditions: [{ type: "Ready", status: "True" }] },
+   * });
+   * ```
+   */
+  applyStatus<T extends K8sResource>(
+    manifest: ApplyingManifest<T>,
+    options?: undefined | ActionOptions
+  ): Promise<void>;
+
+  /**
+   * Fetches a Kubernetes resource by GVK and name.
+   *
+   * @template T - The expected Kubernetes resource shape.
+   * @param resource - Group/version/kind and name of the resource to fetch.
+   * @param options - Retry options such as timeout and polling interval.
+   *
+   * @example
+   * ```ts
+   * const ns = await cluster.get({
+   *   apiVersion: "v1",
+   *   kind: "Namespace",
+   *   name: "default",
+   * });
+   * ```
+   */
+  get<T extends K8sResource>(
+    resource: K8sResourceReference<T>,
+    options?: undefined | ActionOptions
+  ): Promise<T>;
+
+  /**
+   * Fetches a Kubernetes resource and runs a test function against it.
+   *
+   * @template T - The expected Kubernetes resource shape.
+   * @param resource - Resource selector and test callback.
+   * @param options - Retry options such as timeout and polling interval.
+   *
+   * @example
+   * ```ts
+   * await cluster.assert({
+   *   apiVersion: "v1",
+   *   kind: "Namespace",
+   *   name: "kube-system",
+   *   test() {
+   *     expect(this.metadata.name).toBe("kube-system");
+   *   },
+   * });
+   * ```
+   */
+  assert<T extends K8sResource>(
+    resource: ResourceTest<T>,
+    options?: undefined | ActionOptions
+  ): Promise<T>;
+
+  /**
+   * Lists Kubernetes resources of a given type and runs a test function.
+   *
+   * @template T - The expected Kubernetes resource shape.
+   * @param resource - Group/version/kind selector and list test callback.
+   * @param options - Retry options such as timeout and polling interval.
+   *
+   * @example
+   * ```ts
+   * await cluster.assertList({
+   *   apiVersion: "v1",
+   *   kind: "Namespace",
+   *   test() {
+   *     expect(this.length > 0).toBe(true);
+   *   },
+   * });
+   * ```
+   */
+  assertList<T extends K8sResource>(
+    resource: ResourceListTest<T>,
+    options?: undefined | ActionOptions
+  ): Promise<Array<T>>;
+
+  /**
+   * Creates a new namespace in this cluster and returns a namespaced API.
+   *
+   * @param name - Optional namespace name to create.
+   * @param options - Retry options such as timeout and polling interval.
+   *
+   * @example
+   * ```ts
+   * const ns = await cluster.newNamespace("my-ns");
+   * await ns.apply({
+   *   apiVersion: "v1",
+   *   kind: "ConfigMap",
+   *   metadata: { name: "my-config" },
+   *   data: { mode: "from-cluster" },
+   * });
+   * ```
+   */
+  newNamespace(
+    name?: undefined | string,
+    options?: undefined | ActionOptions
+  ): Promise<Namespace>;
+}
+
+/**
+ * Namespace-bound API surface.
+ *
+ * A {@link Namespace} is typically obtained via {@link Scenario.newNamespace} or
+ * {@link Cluster.newNamespace}.
+ *
+ * Operations are scoped by setting the kubectl namespace context (equivalent to
+ * passing `kubectl -n <namespace>`).
+ *
+ * Kest does not rewrite your manifests. For write operations
+ * ({@link Namespace.apply} and {@link Namespace.applyStatus}), treat this API as
+ * the source of truth for the target namespace:
+ *
+ * - Prefer omitting `metadata.namespace` in manifests; kubectl will apply the
+ *   resource into this namespace.
+ * - If `metadata.namespace` is set, it must match this namespace. A mismatch
+ *   causes `kubectl` to fail.
+ */
+export interface Namespace {
+  /**
+   * Applies a Kubernetes manifest in this namespace and registers cleanup.
+   *
+   * The target namespace is controlled by this {@link Namespace} instance.
+   * Prefer omitting `manifest.metadata.namespace`; if it is set, it must match
+   * this namespace (otherwise `kubectl` fails).
+   *
+   * @template T - The expected Kubernetes resource shape.
+   * @param manifest - YAML string, resource object, or imported YAML module.
+   * @param options - Retry options such as timeout and polling interval.
+   *
+   * @example
+   * ```ts
+   * const ns = await s.newNamespace("my-ns");
+   * await ns.apply({
+   *   apiVersion: "v1",
+   *   kind: "Secret",
+   *   metadata: { name: "my-secret" },
+   *   type: "Opaque",
+   *   stringData: { password: "s3cr3t" },
+   * });
+   * ```
+   */
+  apply<T extends K8sResource>(
+    manifest: ApplyingManifest<T>,
+    options?: undefined | ActionOptions
+  ): Promise<void>;
+
+  /**
+   * Applies the `status` subresource in this namespace using server-side apply.
+   *
+   * The target namespace is controlled by this {@link Namespace} instance.
+   * Prefer omitting `manifest.metadata.namespace`; if it is set, it must match
+   * this namespace (otherwise `kubectl` fails).
+   *
+   * @template T - The expected Kubernetes resource shape.
+   * @param manifest - Resource object that includes a `status` field.
+   * @param options - Retry options such as timeout and polling interval.
+   *
+   * @example
+   * ```ts
+   * await ns.applyStatus({
+   *   apiVersion: "example.com/v1",
+   *   kind: "HelloWorld",
+   *   metadata: { name: "my-hello-world" },
+   *   status: { conditions: [{ type: "Ready", status: "True" }] },
+   * });
+   * ```
+   */
+  applyStatus<T extends K8sResource>(
+    manifest: ApplyingManifest<T>,
+    options?: undefined | ActionOptions
+  ): Promise<void>;
+
+  /**
+   * Fetches a namespaced Kubernetes resource by GVK and name.
+   *
+   * @template T - The expected Kubernetes resource shape.
+   * @param resource - Group/version/kind and name of the resource to fetch.
+   * @param options - Retry options such as timeout and polling interval.
+   *
+   * @example
+   * ```ts
+   * const cm = await ns.get({
+   *   apiVersion: "v1",
+   *   kind: "ConfigMap",
+   *   name: "my-config",
+   * });
+   * ```
+   */
+  get<T extends K8sResource>(
+    resource: K8sResourceReference<T>,
+    options?: undefined | ActionOptions
+  ): Promise<T>;
+
+  /**
+   * Fetches a namespaced Kubernetes resource and runs a test function.
+   *
+   * @template T - The expected Kubernetes resource shape.
+   * @param resource - Resource selector and test callback.
+   * @param options - Retry options such as timeout and polling interval.
+   *
+   * @example
+   * ```ts
+   * await ns.assert({
+   *   apiVersion: "v1",
+   *   kind: "ConfigMap",
+   *   name: "my-config",
+   *   test() {
+   *     expect(this.data !== undefined).toBe(true);
+   *   },
+   * });
+   * ```
+   */
+  assert<T extends K8sResource>(
+    resource: ResourceTest<T>,
+    options?: undefined | ActionOptions
+  ): Promise<T>;
+
+  /**
+   * Lists namespaced Kubernetes resources of a given type and runs a test.
+   *
+   * @template T - The expected Kubernetes resource shape.
+   * @param resource - Group/version/kind selector and list test callback.
+   * @param options - Retry options such as timeout and polling interval.
+   *
+   * @example
+   * ```ts
+   * await ns.assertList({
+   *   apiVersion: "v1",
+   *   kind: "ConfigMap",
+   *   test() {
+   *     expect(this.some((c) => c.metadata.name === "my-config")).toBe(true);
+   *   },
+   * });
+   * ```
+   */
+  assertList<T extends K8sResource>(
+    resource: ResourceListTest<T>,
+    options?: undefined | ActionOptions
+  ): Promise<Array<T>>;
+}
+
+/**
+ * Retry configuration for scenario actions.
+ *
+ * These options are forwarded to Kest's retry mechanism.
+ *
+ * - `timeout` defaults to `"5s"`
+ * - `interval` defaults to `"200ms"`
+ *
+ * Durations are expressed as strings such as `"30s"`, `"200ms"`, or `"1m"`.
+ */
+export interface ActionOptions {
+  /**
+   * Maximum duration to keep retrying an action.
+   */
+  readonly timeout?: undefined | string;
+
+  /**
+   * Delay between retry attempts.
+   */
+  readonly interval?: undefined | string;
+}
+
+/**
+ * Input to {@link Scenario.exec}.
+ */
+export interface ExecInput<T = unknown> {
+  /**
+   * Execute arbitrary processing and return its value.
+   *
+   * Note: this function may be retried when it throws and `options.timeout`
+   * allows it (same as other actions), so prefer idempotent operations.
+   */
+  readonly do: (context: ExecContext) => Promise<T>;
+
+  /**
+   * Optional cleanup invoked during scenario cleanup (revert phase).
+   *
+   * When omitted, no cleanup is performed.
+   */
+  readonly revert?: undefined | ((context: ExecContext) => Promise<void>);
+}
+
+/**
+ * Context object passed to {@link ExecInput.do} and {@link ExecInput.revert}.
+ */
+export interface ExecContext {
+  /**
+   * Bun shell helper from `import { $ } from "bun"`.
+   *
+   * @see https://bun.com/docs/runtime/shell
+   */
+  readonly $: BunDollar;
+}
+
+/**
+ * Identifies a Kubernetes resource by group/version/kind and name.
+ *
+ * Used by {@link Scenario.get}.
+ */
+export interface K8sResourceReference<T extends K8sResource = K8sResource> {
+  /**
+   * Kubernetes API version (e.g. `"v1"`, `"apps/v1"`).
+   */
+  readonly apiVersion: T["apiVersion"];
+
+  /**
+   * Kubernetes kind (e.g. `"ConfigMap"`, `"Deployment"`).
+   */
+  readonly kind: T["kind"];
+
+  /**
+   * `metadata.name` of the target resource.
+   */
+  readonly name: string;
+}
+
+/**
+ * A test definition for {@link Scenario.assert}.
+ */
+export interface ResourceTest<T extends K8sResource = K8sResource> {
+  /**
+   * Kubernetes API version (e.g. `"v1"`, `"apps/v1"`).
+   */
+  readonly apiVersion: T["apiVersion"];
+
+  /**
+   * Kubernetes kind (e.g. `"ConfigMap"`, `"Deployment"`).
+   */
+  readonly kind: T["kind"];
+
+  /**
+   * `metadata.name` of the target resource.
+   */
+  readonly name: string;
+
+  /**
+   * Assertion callback.
+   *
+   * The callback is invoked with `this` bound to the fetched resource.
+   * Throwing (or rejecting) signals a failed assertion.
+   */
+  readonly test: (this: T, resource: T) => unknown | Promise<unknown>;
+}
+
+/**
+ * A test definition for {@link Scenario.assertList}.
+ */
+export interface ResourceListTest<T extends K8sResource = K8sResource> {
+  /**
+   * Kubernetes API version (e.g. `"v1"`, `"apps/v1"`).
+   */
+  readonly apiVersion: T["apiVersion"];
+
+  /**
+   * Kubernetes kind (e.g. `"ConfigMap"`, `"Deployment"`).
+   */
+  readonly kind: T["kind"];
+
+  /**
+   * Assertion callback.
+   *
+   * The callback is invoked with `this` bound to the fetched resource list.
+   * Throwing (or rejecting) signals a failed assertion.
+   */
+  readonly test: (
+    this: Array<T>,
+    resources: Array<T>
+  ) => unknown | Promise<unknown>;
+}
+
+/**
+ * Kubernetes cluster selector for {@link Scenario.useCluster}.
+ */
+export interface ClusterReference {
+  /**
+   * Path to a kubeconfig file to use for this cluster.
+   */
+  readonly kubeconfig?: undefined | string;
+
+  /**
+   * kubeconfig context name to use for this cluster.
+   */
+  readonly context?: undefined | string;
+}
+
+/**
+ * A Kubernetes manifest accepted by Kest actions.
+ *
+ * This flexibility is intended to make tests ergonomic:
+ *
+ * - pass YAML as a string
+ * - pass an object literal
+ * - `import manifest from "./resource.yaml"` and pass the module
+ */
+export type ApplyingManifest<T extends K8sResource = K8sResource> =
+  | string // YAML string
+  | T
+  | ImportedYaml
+  | Promise<ImportedYaml>;
+
+/**
+ * Minimal shape of a Kubernetes resource.
+ *
+ * Kest treats resources as plain objects and only relies on a few common fields
+ * (`apiVersion`, `kind`, and `metadata.name`).
+ */
+export interface K8sResource {
+  apiVersion: string;
+  kind: string;
+  metadata: {
+    name: string;
+    namespace?: string;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
+/**
+ * Shape of `import manifest from "./resource.yaml"`.
+ */
+export interface ImportedYaml {
+  readonly default: unknown;
+}
