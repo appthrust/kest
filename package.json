@@ -1,6 +1,6 @@
 {
   "name": "@appthrust/kest",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Kubernetes E2E testing framework designed for humans and AI alike",
   "type": "module",
   "module": "ts/index.ts",
