@@ -3,6 +3,7 @@ import { applyNamespace } from "../actions/apply-namespace";
 import { applyStatus } from "../actions/apply-status";
 import { assert } from "../actions/assert";
 import { assertList } from "../actions/assert-list";
+import { deleteResource } from "../actions/delete";
 import { exec } from "../actions/exec";
 import { get } from "../actions/get";
 import type { MutateDef, OneWayMutateDef, QueryDef } from "../actions/types";
@@ -31,6 +32,7 @@ export function createScenario(deps: CreateScenarioOptions): InternalScenario {
   return {
     apply: createMutateFn(deps, apply),
     applyStatus: createOneWayMutateFn(deps, applyStatus),
+    delete: createOneWayMutateFn(deps, deleteResource),
     exec: createMutateFn(deps, exec),
     get: createQueryFn(deps, get),
     assert: createQueryFn(deps, assert),
@@ -193,6 +195,7 @@ const createNewNamespaceFn =
     return {
       apply: createMutateFn(namespacedDeps, apply),
       applyStatus: createOneWayMutateFn(namespacedDeps, applyStatus),
+      delete: createOneWayMutateFn(namespacedDeps, deleteResource),
       get: createQueryFn(namespacedDeps, get),
       assert: createQueryFn(namespacedDeps, assert),
       assertList: createQueryFn(namespacedDeps, assertList),
@@ -212,6 +215,7 @@ const createUseClusterFn =
     return {
       apply: createMutateFn(clusterDeps, apply),
       applyStatus: createOneWayMutateFn(clusterDeps, applyStatus),
+      delete: createOneWayMutateFn(clusterDeps, deleteResource),
       get: createQueryFn(clusterDeps, get),
       assert: createQueryFn(clusterDeps, assert),
       assertList: createQueryFn(clusterDeps, assertList),

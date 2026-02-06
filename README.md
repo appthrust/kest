@@ -337,6 +337,7 @@ The top-level API surface available in every test callback.
 | ----------------------------------------------------------------------- | ------------------------------------------------ |
 | `apply(manifest, options?)`                                             | Apply a Kubernetes manifest and register cleanup |
 | `applyStatus(manifest, options?)`                                       | Apply a status subresource (server-side apply)   |
+| `delete(resource, options?)`                                            | Delete a resource by API version, kind, and name |
 | `get(resource, options?)`                                               | Fetch a resource by API version, kind, and name  |
 | `assert(resource, options?)`                                            | Fetch a resource and run assertions with retries |
 | `assertList(resource, options?)`                                        | Fetch a list of resources and run assertions     |
@@ -347,7 +348,7 @@ The top-level API surface available in every test callback.
 
 ### Namespace / Cluster
 
-Returned by `newNamespace()` and `useCluster()` respectively. They expose the same core methods (`apply`, `applyStatus`, `get`, `assert`, `assertList`, `newNamespace`) scoped to their namespace or cluster context.
+Returned by `newNamespace()` and `useCluster()` respectively. They expose the same core methods (`apply`, `applyStatus`, `delete`, `get`, `assert`, `assertList`) scoped to their namespace or cluster context. `Cluster` additionally supports `newNamespace`.
 
 ### Action Options
 

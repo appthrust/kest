@@ -13,7 +13,8 @@ import type { $ as BunDollar } from "bun";
  * Some actions also register cleanup ("revert") handlers which run during
  * scenario cleanup. For example, {@link Scenario.apply} registers a revert that
  * deletes the applied resource. One-way mutations such as
- * {@link Scenario.applyStatus} do not register a revert.
+ * {@link Scenario.applyStatus} and {@link Scenario.delete} do not register a
+ * revert.
  */
 
 /**
@@ -85,6 +86,31 @@ export interface Scenario {
    */
   applyStatus<T extends K8sResource>(
     manifest: ApplyingManifest<T>,
+    options?: undefined | ActionOptions
+  ): Promise<void>;
+
+  /**
+   * Deletes a Kubernetes resource using `kubectl delete`.
+   *
+   * This action is retried when it throws.
+   *
+   * Note: this is a one-way mutation and does not register a cleanup handler.
+   *
+   * @template T - The expected Kubernetes resource shape.
+   * @param resource - Group/version/kind and name of the resource to delete.
+   * @param options - Retry options such as timeout and polling interval.
+   *
+   * @example
+   * ```ts
+   * await s.delete({
+   *   apiVersion: "v1",
+   *   kind: "ConfigMap",
+   *   name: "my-config",
+   * });
+   * ```
+   */
+  delete<T extends K8sResource>(
+    resource: K8sResourceReference<T>,
     options?: undefined | ActionOptions
   ): Promise<void>;
 
@@ -371,6 +397,22 @@ export interface Cluster {
   ): Promise<void>;
 
   /**
+   * Deletes a Kubernetes resource in this cluster using `kubectl delete`.
+   *
+   * This action is retried when it throws.
+   *
+   * Note: this is a one-way mutation and does not register a cleanup handler.
+   *
+   * @template T - The expected Kubernetes resource shape.
+   * @param resource - Group/version/kind and name of the resource to delete.
+   * @param options - Retry options such as timeout and polling interval.
+   */
+  delete<T extends K8sResource>(
+    resource: K8sResourceReference<T>,
+    options?: undefined | ActionOptions
+  ): Promise<void>;
+
+  /**
    * Fetches a Kubernetes resource by GVK and name.
    *
    * @template T - The expected Kubernetes resource shape.
@@ -531,6 +573,22 @@ export interface Namespace {
    */
   applyStatus<T extends K8sResource>(
     manifest: ApplyingManifest<T>,
+    options?: undefined | ActionOptions
+  ): Promise<void>;
+
+  /**
+   * Deletes a Kubernetes resource in this namespace using `kubectl delete`.
+   *
+   * This action is retried when it throws.
+   *
+   * Note: this is a one-way mutation and does not register a cleanup handler.
+   *
+   * @template T - The expected Kubernetes resource shape.
+   * @param resource - Group/version/kind and name of the resource to delete.
+   * @param options - Retry options such as timeout and polling interval.
+   */
+  delete<T extends K8sResource>(
+    resource: K8sResourceReference<T>,
     options?: undefined | ActionOptions
   ): Promise<void>;
 
