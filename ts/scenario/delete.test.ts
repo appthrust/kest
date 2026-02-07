@@ -43,6 +43,9 @@ class FakeKubectl implements Kubectl {
   patch(): Promise<string> {
     return Promise.resolve("");
   }
+  label(): Promise<string> {
+    return Promise.resolve("");
+  }
 
   delete(
     resource: string,

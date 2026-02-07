@@ -20,6 +20,7 @@ function makeKubectlReturningList(yaml: string): Kubectl {
     list: async () => yaml,
     patch: async () => "",
     delete: async () => "",
+    label: async () => "",
   };
   return kubectl;
 }

@@ -26,6 +26,7 @@ function makeKubectlRecorder(
     get: () => Promise.resolve(""),
     list: () => Promise.resolve(""),
     patch: () => Promise.resolve(""),
+    label: () => Promise.resolve(""),
     delete: (resource, name) => {
       onDelete(resource, name);
       return Promise.resolve("");

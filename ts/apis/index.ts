@@ -115,6 +115,38 @@ export interface Scenario {
   ): Promise<void>;
 
   /**
+   * Adds, updates, or removes labels on a Kubernetes resource using
+   * `kubectl label`.
+   *
+   * Set a label value to a string to add/update it, or to `null` to remove it.
+   *
+   * This action is retried when it throws.
+   *
+   * Note: this is a one-way mutation and does not register a cleanup handler.
+   *
+   * @template T - The expected Kubernetes resource shape.
+   * @param input - Resource reference and label changes.
+   * @param options - Retry options such as timeout and polling interval.
+   *
+   * @example
+   * ```ts
+   * await s.label({
+   *   apiVersion: "v1",
+   *   kind: "ConfigMap",
+   *   name: "my-config",
+   *   labels: {
+   *     env: "production",  // add or update
+   *     deprecated: null,   // remove
+   *   },
+   * });
+   * ```
+   */
+  label<T extends K8sResource>(
+    input: LabelInput<T>,
+    options?: undefined | ActionOptions
+  ): Promise<void>;
+
+  /**
    * Fetches a Kubernetes resource and returns it as a typed object.
    *
    * This is a convenience wrapper over {@link Scenario.assert} that verifies the
@@ -413,6 +445,38 @@ export interface Cluster {
   ): Promise<void>;
 
   /**
+   * Adds, updates, or removes labels on a Kubernetes resource in this cluster
+   * using `kubectl label`.
+   *
+   * Set a label value to a string to add/update it, or to `null` to remove it.
+   *
+   * This action is retried when it throws.
+   *
+   * Note: this is a one-way mutation and does not register a cleanup handler.
+   *
+   * @template T - The expected Kubernetes resource shape.
+   * @param input - Resource reference and label changes.
+   * @param options - Retry options such as timeout and polling interval.
+   *
+   * @example
+   * ```ts
+   * await cluster.label({
+   *   apiVersion: "v1",
+   *   kind: "Namespace",
+   *   name: "my-team",
+   *   labels: {
+   *     team: "backend",
+   *     deprecated: null,
+   *   },
+   * });
+   * ```
+   */
+  label<T extends K8sResource>(
+    input: LabelInput<T>,
+    options?: undefined | ActionOptions
+  ): Promise<void>;
+
+  /**
    * Fetches a Kubernetes resource by GVK and name.
    *
    * @template T - The expected Kubernetes resource shape.
@@ -593,6 +657,40 @@ export interface Namespace {
   ): Promise<void>;
 
   /**
+   * Adds, updates, or removes labels on a namespaced Kubernetes resource using
+   * `kubectl label`.
+   *
+   * The target namespace is controlled by this {@link Namespace} instance.
+   *
+   * Set a label value to a string to add/update it, or to `null` to remove it.
+   *
+   * This action is retried when it throws.
+   *
+   * Note: this is a one-way mutation and does not register a cleanup handler.
+   *
+   * @template T - The expected Kubernetes resource shape.
+   * @param input - Resource reference and label changes.
+   * @param options - Retry options such as timeout and polling interval.
+   *
+   * @example
+   * ```ts
+   * await ns.label({
+   *   apiVersion: "v1",
+   *   kind: "ConfigMap",
+   *   name: "my-config",
+   *   labels: {
+   *     env: "production",
+   *     deprecated: null,
+   *   },
+   * });
+   * ```
+   */
+  label<T extends K8sResource>(
+    input: LabelInput<T>,
+    options?: undefined | ActionOptions
+  ): Promise<void>;
+
+  /**
    * Fetches a namespaced Kubernetes resource by GVK and name.
    *
    * @template T - The expected Kubernetes resource shape.
@@ -735,6 +833,57 @@ export interface K8sResourceReference<T extends K8sResource = K8sResource> {
    * `metadata.name` of the target resource.
    */
   readonly name: string;
+}
+
+/**
+ * Input for {@link Scenario.label}, {@link Cluster.label}, and
+ * {@link Namespace.label}.
+ *
+ * Identifies a Kubernetes resource and the label changes to apply.
+ *
+ * - A label value of `string` adds or updates the label.
+ * - A label value of `null` removes the label.
+ */
+export interface LabelInput<T extends K8sResource = K8sResource> {
+  /**
+   * Kubernetes API version (e.g. `"v1"`, `"apps/v1"`).
+   */
+  readonly apiVersion: T["apiVersion"];
+
+  /**
+   * Kubernetes kind (e.g. `"ConfigMap"`, `"Deployment"`).
+   */
+  readonly kind: T["kind"];
+
+  /**
+   * `metadata.name` of the target resource.
+   */
+  readonly name: string;
+
+  /**
+   * Optional namespace override.
+   *
+   * When used on a {@link Namespace}-scoped API surface the namespace is
+   * already set; this field is mainly useful at the {@link Scenario} or
+   * {@link Cluster} level for namespaced resources.
+   */
+  readonly namespace?: undefined | string;
+
+  /**
+   * Label mutations to apply.
+   *
+   * - `"value"` -- add or update the label to the given value.
+   * - `null` -- remove the label.
+   */
+  readonly labels: Readonly<Record<string, string | null>>;
+
+  /**
+   * When `true`, passes `--overwrite` to allow updating labels that already
+   * exist on the resource.
+   *
+   * @default false
+   */
+  readonly overwrite?: undefined | boolean;
 }
 
 /**

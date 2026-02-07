@@ -135,6 +135,26 @@ export interface Kubectl {
     name: string,
     options?: KubectlDeleteOptions
   ): Promise<string>;
+
+  /**
+   * Adds, updates, or removes labels on a Kubernetes resource using
+   * `kubectl label <resource>/<name> key=value ... [--overwrite]`.
+   *
+   * Labels with a `null` value are removed (emitted as `key-`).
+   *
+   * @param resource - The resource type (e.g., "configmap", "deployment.v1.apps")
+   * @param name - The name of the resource to label
+   * @param labels - Label mutations (string to set, null to remove)
+   * @param options - Optional label options (overwrite, context)
+   * @returns The trimmed stdout from kubectl
+   * @throws Error if kubectl exits with non-zero code
+   */
+  label(
+    resource: string,
+    name: string,
+    labels: Readonly<Record<string, string | null>>,
+    options?: KubectlLabelOptions
+  ): Promise<string>;
 }
 
 export interface KubectlDeleteOptions {
@@ -143,6 +163,15 @@ export interface KubectlDeleteOptions {
    * that does not exist succeeds silently instead of failing.
    */
   readonly ignoreNotFound?: undefined | boolean;
+  readonly context?: undefined | KubectlContext;
+}
+
+export interface KubectlLabelOptions {
+  /**
+   * If true, adds `--overwrite` to allow updating labels that already
+   * exist on the resource.
+   */
+  readonly overwrite?: undefined | boolean;
   readonly context?: undefined | KubectlContext;
 }
 
@@ -274,6 +303,31 @@ export class RealKubectl implements Kubectl {
     const args: [string, ...Array<string>] = ["delete", `${resource}/${name}`];
     if (options?.ignoreNotFound) {
       args.push("--ignore-not-found");
+    }
+    return await this.runKubectl({
+      args,
+      stdoutLanguage: "text",
+      stderrLanguage: "text",
+      overrideContext: options?.context,
+    });
+  }
+
+  async label(
+    resource: string,
+    name: string,
+    labels: Readonly<Record<string, string | null>>,
+    options?: KubectlLabelOptions
+  ): Promise<string> {
+    const args: [string, ...Array<string>] = ["label", `${resource}/${name}`];
+    for (const [key, value] of Object.entries(labels)) {
+      if (value === null) {
+        args.push(`${key}-`);
+      } else {
+        args.push(`${key}=${value}`);
+      }
+    }
+    if (options?.overwrite) {
+      args.push("--overwrite");
     }
     return await this.runKubectl({
       args,

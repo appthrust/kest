@@ -197,6 +197,36 @@ await ns.assertList<ConfigMap>({
 });
 ```
 
+### Label Resources
+
+Add, update, or remove labels on Kubernetes resources using `kubectl label`:
+
+```ts
+await ns.label({
+  apiVersion: "v1",
+  kind: "ConfigMap",
+  name: "my-config",
+  labels: {
+    env: "production",   // add a label
+    deprecated: null,    // remove a label
+  },
+});
+```
+
+To overwrite an existing label, set `overwrite: true`:
+
+```ts
+await ns.label({
+  apiVersion: "apps/v1",
+  kind: "Deployment",
+  name: "my-app",
+  labels: {
+    version: "v2",
+  },
+  overwrite: true,
+});
+```
+
 ### Shell Command Execution
 
 Run arbitrary shell commands with optional revert handlers for cleanup:
@@ -333,22 +363,23 @@ Entry point for defining a test scenario. The callback receives a `Scenario` obj
 
 The top-level API surface available in every test callback.
 
-| Method                                                                  | Description                                      |
-| ----------------------------------------------------------------------- | ------------------------------------------------ |
-| `apply(manifest, options?)`                                             | Apply a Kubernetes manifest and register cleanup |
-| `applyStatus(manifest, options?)`                                       | Apply a status subresource (server-side apply)   |
-| `delete(resource, options?)`                                            | Delete a resource by API version, kind, and name |
-| `get(resource, options?)`                                               | Fetch a resource by API version, kind, and name  |
-| `assert(resource, options?)`                                            | Fetch a resource and run assertions with retries |
-| `assertList(resource, options?)`                                        | Fetch a list of resources and run assertions     |
-| `newNamespace(name?, options?)`                                         | Create an ephemeral namespace                    |
-| `exec(input, options?)`                                                 | Execute shell commands with optional revert      |
-| `useCluster(ref)`                                                       | Create a cluster-bound API surface               |
-| `given(desc)` / `when(desc)` / `then(desc)` / `and(desc)` / `but(desc)` | BDD annotations for reporting                    |
+| Method                                                                  | Description                                       |
+| ----------------------------------------------------------------------- | ------------------------------------------------- |
+| `apply(manifest, options?)`                                             | Apply a Kubernetes manifest and register cleanup  |
+| `applyStatus(manifest, options?)`                                       | Apply a status subresource (server-side apply)    |
+| `delete(resource, options?)`                                            | Delete a resource by API version, kind, and name  |
+| `label(input, options?)`                                                | Add, update, or remove labels on a resource       |
+| `get(resource, options?)`                                               | Fetch a resource by API version, kind, and name   |
+| `assert(resource, options?)`                                            | Fetch a resource and run assertions with retries  |
+| `assertList(resource, options?)`                                        | Fetch a list of resources and run assertions      |
+| `newNamespace(name?, options?)`                                         | Create an ephemeral namespace                     |
+| `exec(input, options?)`                                                 | Execute shell commands with optional revert       |
+| `useCluster(ref)`                                                       | Create a cluster-bound API surface                |
+| `given(desc)` / `when(desc)` / `then(desc)` / `and(desc)` / `but(desc)` | BDD annotations for reporting                     |
 
 ### Namespace / Cluster
 
-Returned by `newNamespace()` and `useCluster()` respectively. They expose the same core methods (`apply`, `applyStatus`, `delete`, `get`, `assert`, `assertList`) scoped to their namespace or cluster context. `Cluster` additionally supports `newNamespace`.
+Returned by `newNamespace()` and `useCluster()` respectively. They expose the same core methods (`apply`, `applyStatus`, `delete`, `label`, `get`, `assert`, `assertList`) scoped to their namespace or cluster context. `Cluster` additionally supports `newNamespace`.
 
 ### Action Options
 
