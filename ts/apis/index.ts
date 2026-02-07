@@ -244,7 +244,11 @@ export interface Scenario {
    * `kest-abc12`). The namespace creation is a mutating action that registers a
    * cleanup handler; the namespace is deleted during scenario cleanup.
    *
-   * @param name - Optional namespace name to create.
+   * You can also pass `{ generateName: "prefix-" }` to generate a name with a
+   * custom prefix (e.g. `"prefix-d7kpn"`).
+   *
+   * @param name - Optional namespace name, or `{ generateName }` for prefixed
+   *   generation.
    * @param options - Retry options such as timeout and polling interval.
    *
    * @example
@@ -257,9 +261,15 @@ export interface Scenario {
    *   data: { mode: "namespaced" },
    * });
    * ```
+   *
+   * @example
+   * ```ts
+   * // Generate a namespace with a custom prefix (e.g. "foo-d7kpn")
+   * const ns = await s.newNamespace({ generateName: "foo-" });
+   * ```
    */
   newNamespace(
-    name?: undefined | string,
+    name?: undefined | string | { readonly generateName: string },
     options?: undefined | ActionOptions
   ): Promise<Namespace>;
 
@@ -547,7 +557,8 @@ export interface Cluster {
   /**
    * Creates a new namespace in this cluster and returns a namespaced API.
    *
-   * @param name - Optional namespace name to create.
+   * @param name - Optional namespace name, or `{ generateName }` for prefixed
+   *   generation.
    * @param options - Retry options such as timeout and polling interval.
    *
    * @example
@@ -560,9 +571,15 @@ export interface Cluster {
    *   data: { mode: "from-cluster" },
    * });
    * ```
+   *
+   * @example
+   * ```ts
+   * // Generate a namespace with a custom prefix
+   * const ns = await cluster.newNamespace({ generateName: "foo-" });
+   * ```
    */
   newNamespace(
-    name?: undefined | string,
+    name?: undefined | string | { readonly generateName: string },
     options?: undefined | ActionOptions
   ): Promise<Namespace>;
 }

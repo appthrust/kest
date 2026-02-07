@@ -71,6 +71,13 @@ const ns = await s.newNamespace();
 // All resources applied through `ns` are scoped to this namespace.
 ```
 
+You can also specify a custom prefix for the generated namespace name using `generateName`:
+
+```ts
+const ns = await s.newNamespace({ generateName: "foo-" });
+// Namespace name will be like "foo-d7kpn"
+```
+
 ### Automatic Cleanup (Reverse-Order, Blocking)
 
 Resources are deleted in the reverse order they were created (LIFO). Kest waits until each resource is fully removed before proceeding, preventing flaky failures caused by lingering resources or `Terminating` namespaces.
@@ -372,7 +379,7 @@ The top-level API surface available in every test callback.
 | `get(resource, options?)`                                               | Fetch a resource by API version, kind, and name   |
 | `assert(resource, options?)`                                            | Fetch a resource and run assertions with retries  |
 | `assertList(resource, options?)`                                        | Fetch a list of resources and run assertions      |
-| `newNamespace(name?, options?)`                                         | Create an ephemeral namespace                     |
+| `newNamespace(name?, options?)`                                         | Create an ephemeral namespace (supports `{ generateName }`) |
 | `exec(input, options?)`                                                 | Execute shell commands with optional revert       |
 | `useCluster(ref)`                                                       | Create a cluster-bound API surface                |
 | `given(desc)` / `when(desc)` / `then(desc)` / `and(desc)` / `but(desc)` | BDD annotations for reporting                     |

@@ -1,5 +1,8 @@
 import { apply } from "../actions/apply";
-import { applyNamespace } from "../actions/apply-namespace";
+import {
+  type ApplyNamespaceInput,
+  applyNamespace,
+} from "../actions/apply-namespace";
 import { applyStatus } from "../actions/apply-status";
 import { assert } from "../actions/assert";
 import { assertList } from "../actions/assert-list";
@@ -184,7 +187,7 @@ const createQueryFn =
 const createNewNamespaceFn =
   (scenarioDeps: CreateScenarioOptions) =>
   async (
-    name?: undefined | string,
+    name?: ApplyNamespaceInput,
     options?: undefined | ActionOptions
   ): Promise<Namespace> => {
     const namespaceName = await createMutateFn(scenarioDeps, applyNamespace)(
