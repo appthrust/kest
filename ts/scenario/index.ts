@@ -195,6 +195,7 @@ const createNewNamespaceFn =
     const namespacedKubectl = kubectl.extends({ namespace: namespaceName });
     const namespacedDeps = { ...scenarioDeps, kubectl: namespacedKubectl };
     return {
+      name: namespaceName,
       apply: createMutateFn(namespacedDeps, apply),
       applyStatus: createOneWayMutateFn(namespacedDeps, applyStatus),
       delete: createOneWayMutateFn(namespacedDeps, deleteResource),

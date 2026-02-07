@@ -587,6 +587,11 @@ export interface Cluster {
  */
 export interface Namespace {
   /**
+   * The name of this namespace (e.g. `"kest-abc12"`).
+   */
+  readonly name: string;
+
+  /**
    * Applies a Kubernetes manifest in this namespace and registers cleanup.
    *
    * The target namespace is controlled by this {@link Namespace} instance.
