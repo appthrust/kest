@@ -7,6 +7,7 @@ import { applyStatus } from "../actions/apply-status";
 import { assert } from "../actions/assert";
 import { assertAbsence } from "../actions/assert-absence";
 import { assertList } from "../actions/assert-list";
+import { create } from "../actions/create";
 import { deleteResource } from "../actions/delete";
 import { exec } from "../actions/exec";
 import { get } from "../actions/get";
@@ -36,6 +37,7 @@ export function createScenario(deps: CreateScenarioOptions): InternalScenario {
   recorder.record("ScenarioStarted", { name: deps.name });
   return {
     apply: createMutateFn(deps, apply),
+    create: createMutateFn(deps, create),
     applyStatus: createOneWayMutateFn(deps, applyStatus),
     delete: createOneWayMutateFn(deps, deleteResource),
     label: createOneWayMutateFn(deps, label),
@@ -202,6 +204,7 @@ const createNewNamespaceFn =
     return {
       name: namespaceName,
       apply: createMutateFn(namespacedDeps, apply),
+      create: createMutateFn(namespacedDeps, create),
       applyStatus: createOneWayMutateFn(namespacedDeps, applyStatus),
       delete: createOneWayMutateFn(namespacedDeps, deleteResource),
       label: createOneWayMutateFn(namespacedDeps, label),
@@ -224,6 +227,7 @@ const createUseClusterFn =
     const clusterDeps = { ...scenarioDeps, kubectl: clusterKubectl };
     return {
       apply: createMutateFn(clusterDeps, apply),
+      create: createMutateFn(clusterDeps, create),
       applyStatus: createOneWayMutateFn(clusterDeps, applyStatus),
       delete: createOneWayMutateFn(clusterDeps, deleteResource),
       label: createOneWayMutateFn(clusterDeps, label),

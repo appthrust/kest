@@ -55,6 +55,39 @@ export interface Scenario {
   ): Promise<void>;
 
   /**
+   * Creates a Kubernetes resource with `kubectl create`.
+   *
+   * The manifest is validated and then created. When the action succeeds, Kest
+   * registers a cleanup handler that deletes the resource using
+   * `kubectl delete <kind>/<metadata.name>` during scenario cleanup.
+   *
+   * Unlike {@link Scenario.apply}, this action uses `kubectl create` which
+   * fails if the resource already exists. Use this when you need to ensure the
+   * resource is freshly created (e.g. for resources that use `generateName` or
+   * when you want to guarantee no prior state).
+   *
+   * This action is retried when it throws.
+   *
+   * @template T - The expected Kubernetes resource shape.
+   * @param manifest - YAML string, resource object, or imported YAML module.
+   * @param options - Retry options such as timeout and polling interval.
+   *
+   * @example
+   * ```ts
+   * await s.create({
+   *   apiVersion: "v1",
+   *   kind: "ConfigMap",
+   *   metadata: { name: "my-config" },
+   *   data: { mode: "demo" },
+   * });
+   * ```
+   */
+  create<T extends K8sResource>(
+    manifest: ApplyingManifest<T>,
+    options?: undefined | ActionOptions
+  ): Promise<void>;
+
+  /**
    * Applies the `status` subresource using server-side apply.
    *
    * Internally, this uses:
@@ -443,6 +476,30 @@ export interface Cluster {
   ): Promise<void>;
 
   /**
+   * Creates a Kubernetes resource with `kubectl create` and registers cleanup.
+   *
+   * Unlike {@link Cluster.apply}, this uses `kubectl create` which fails if the
+   * resource already exists.
+   *
+   * @template T - The expected Kubernetes resource shape.
+   * @param manifest - YAML string, resource object, or imported YAML module.
+   * @param options - Retry options such as timeout and polling interval.
+   *
+   * @example
+   * ```ts
+   * await cluster.create({
+   *   apiVersion: "v1",
+   *   kind: "Namespace",
+   *   metadata: { name: "my-team" },
+   * });
+   * ```
+   */
+  create<T extends K8sResource>(
+    manifest: ApplyingManifest<T>,
+    options?: undefined | ActionOptions
+  ): Promise<void>;
+
+  /**
    * Applies the `status` subresource using server-side apply.
    *
    * @template T - The expected Kubernetes resource shape.
@@ -679,6 +736,37 @@ export interface Namespace {
    * ```
    */
   apply<T extends K8sResource>(
+    manifest: ApplyingManifest<T>,
+    options?: undefined | ActionOptions
+  ): Promise<void>;
+
+  /**
+   * Creates a Kubernetes resource in this namespace with `kubectl create` and
+   * registers cleanup.
+   *
+   * The target namespace is controlled by this {@link Namespace} instance.
+   * Prefer omitting `manifest.metadata.namespace`; if it is set, it must match
+   * this namespace (otherwise `kubectl` fails).
+   *
+   * Unlike {@link Namespace.apply}, this uses `kubectl create` which fails if
+   * the resource already exists.
+   *
+   * @template T - The expected Kubernetes resource shape.
+   * @param manifest - YAML string, resource object, or imported YAML module.
+   * @param options - Retry options such as timeout and polling interval.
+   *
+   * @example
+   * ```ts
+   * const ns = await s.newNamespace("my-ns");
+   * await ns.create({
+   *   apiVersion: "v1",
+   *   kind: "ConfigMap",
+   *   metadata: { name: "my-config" },
+   *   data: { mode: "demo" },
+   * });
+   * ```
+   */
+  create<T extends K8sResource>(
     manifest: ApplyingManifest<T>,
     options?: undefined | ActionOptions
   ): Promise<void>;

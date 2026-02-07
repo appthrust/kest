@@ -119,6 +119,21 @@ await ns.assert(
 );
 ```
 
+### Create Resources
+
+Use `kubectl create` instead of `kubectl apply` when you need to ensure a resource is freshly created (e.g. the resource must not already exist, or you want to use `generateName`):
+
+```ts
+await ns.create({
+  apiVersion: "v1",
+  kind: "ConfigMap",
+  metadata: { name: "my-config" },
+  data: { mode: "demo" },
+});
+```
+
+Like `apply`, `create` registers a cleanup handler that deletes the resource when the test ends. The key difference is that `kubectl create` fails if the resource already exists, whereas `kubectl apply` performs an upsert.
+
 ### Multiple Manifest Formats
 
 Apply resources using whichever format is most convenient:
@@ -398,6 +413,7 @@ The top-level API surface available in every test callback.
 | Method                                                                  | Description                                       |
 | ----------------------------------------------------------------------- | ------------------------------------------------- |
 | `apply(manifest, options?)`                                             | Apply a Kubernetes manifest and register cleanup  |
+| `create(manifest, options?)`                                            | Create a Kubernetes resource and register cleanup |
 | `applyStatus(manifest, options?)`                                       | Apply a status subresource (server-side apply)    |
 | `delete(resource, options?)`                                            | Delete a resource by API version, kind, and name  |
 | `label(input, options?)`                                                | Add, update, or remove labels on a resource       |
@@ -412,7 +428,7 @@ The top-level API surface available in every test callback.
 
 ### Namespace / Cluster
 
-Returned by `newNamespace()` and `useCluster()` respectively. They expose the same core methods (`apply`, `applyStatus`, `delete`, `label`, `get`, `assert`, `assertAbsence`, `assertList`) scoped to their namespace or cluster context. `Cluster` additionally supports `newNamespace`.
+Returned by `newNamespace()` and `useCluster()` respectively. They expose the same core methods (`apply`, `create`, `applyStatus`, `delete`, `label`, `get`, `assert`, `assertAbsence`, `assertList`) scoped to their namespace or cluster context. `Cluster` additionally supports `newNamespace`.
 
 ### Action Options
 
