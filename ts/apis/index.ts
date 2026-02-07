@@ -209,6 +209,32 @@ export interface Scenario {
   ): Promise<T>;
 
   /**
+   * Asserts that a Kubernetes resource does not exist.
+   *
+   * Internally, this uses `kubectl get` and expects it to fail with a
+   * "not found" error. If the resource exists, the assertion fails.
+   *
+   * This action is retried until the resource is absent or a timeout expires.
+   *
+   * @template T - The expected Kubernetes resource shape.
+   * @param resource - Group/version/kind and name of the resource.
+   * @param options - Retry options such as timeout and polling interval.
+   *
+   * @example
+   * ```ts
+   * await s.assertAbsence({
+   *   apiVersion: "v1",
+   *   kind: "ConfigMap",
+   *   name: "deleted-config",
+   * });
+   * ```
+   */
+  assertAbsence<T extends K8sResource>(
+    resource: K8sResourceReference<T>,
+    options?: undefined | ActionOptions
+  ): Promise<void>;
+
+  /**
    * Lists Kubernetes resources of a given type and runs a test function.
    *
    * The `test` callback is invoked with `this` bound to the fetched list.
@@ -532,6 +558,27 @@ export interface Cluster {
   ): Promise<T>;
 
   /**
+   * Asserts that a Kubernetes resource does not exist in this cluster.
+   *
+   * @template T - The expected Kubernetes resource shape.
+   * @param resource - Group/version/kind and name of the resource.
+   * @param options - Retry options such as timeout and polling interval.
+   *
+   * @example
+   * ```ts
+   * await cluster.assertAbsence({
+   *   apiVersion: "v1",
+   *   kind: "Namespace",
+   *   name: "deleted-ns",
+   * });
+   * ```
+   */
+  assertAbsence<T extends K8sResource>(
+    resource: K8sResourceReference<T>,
+    options?: undefined | ActionOptions
+  ): Promise<void>;
+
+  /**
    * Lists Kubernetes resources of a given type and runs a test function.
    *
    * @template T - The expected Kubernetes resource shape.
@@ -756,6 +803,27 @@ export interface Namespace {
     resource: ResourceTest<T>,
     options?: undefined | ActionOptions
   ): Promise<T>;
+
+  /**
+   * Asserts that a namespaced Kubernetes resource does not exist.
+   *
+   * @template T - The expected Kubernetes resource shape.
+   * @param resource - Group/version/kind and name of the resource.
+   * @param options - Retry options such as timeout and polling interval.
+   *
+   * @example
+   * ```ts
+   * await ns.assertAbsence({
+   *   apiVersion: "v1",
+   *   kind: "ConfigMap",
+   *   name: "deleted-config",
+   * });
+   * ```
+   */
+  assertAbsence<T extends K8sResource>(
+    resource: K8sResourceReference<T>,
+    options?: undefined | ActionOptions
+  ): Promise<void>;
 
   /**
    * Lists namespaced Kubernetes resources of a given type and runs a test.

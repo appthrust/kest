@@ -5,6 +5,7 @@ import {
 } from "../actions/apply-namespace";
 import { applyStatus } from "../actions/apply-status";
 import { assert } from "../actions/assert";
+import { assertAbsence } from "../actions/assert-absence";
 import { assertList } from "../actions/assert-list";
 import { deleteResource } from "../actions/delete";
 import { exec } from "../actions/exec";
@@ -41,6 +42,7 @@ export function createScenario(deps: CreateScenarioOptions): InternalScenario {
     exec: createMutateFn(deps, exec),
     get: createQueryFn(deps, get),
     assert: createQueryFn(deps, assert),
+    assertAbsence: createQueryFn(deps, assertAbsence),
     assertList: createQueryFn(deps, assertList),
     given: bdd.given(deps),
     when: bdd.when(deps),
@@ -205,6 +207,7 @@ const createNewNamespaceFn =
       label: createOneWayMutateFn(namespacedDeps, label),
       get: createQueryFn(namespacedDeps, get),
       assert: createQueryFn(namespacedDeps, assert),
+      assertAbsence: createQueryFn(namespacedDeps, assertAbsence),
       assertList: createQueryFn(namespacedDeps, assertList),
     };
   };
@@ -226,6 +229,7 @@ const createUseClusterFn =
       label: createOneWayMutateFn(clusterDeps, label),
       get: createQueryFn(clusterDeps, get),
       assert: createQueryFn(clusterDeps, assert),
+      assertAbsence: createQueryFn(clusterDeps, assertAbsence),
       assertList: createQueryFn(clusterDeps, assertList),
       newNamespace: createNewNamespaceFn(clusterDeps),
     };

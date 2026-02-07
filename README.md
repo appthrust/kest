@@ -204,6 +204,31 @@ await ns.assertList<ConfigMap>({
 });
 ```
 
+### Absence Assertions
+
+Assert that a resource does not exist (e.g. after deletion or to verify a controller hasn't created something):
+
+```ts
+await ns.assertAbsence({
+  apiVersion: "v1",
+  kind: "ConfigMap",
+  name: "deleted-config",
+});
+```
+
+With retry-based polling to wait for a resource to disappear:
+
+```ts
+await ns.assertAbsence(
+  {
+    apiVersion: "apps/v1",
+    kind: "Deployment",
+    name: "my-app",
+  },
+  { timeout: "30s", interval: "1s" },
+);
+```
+
 ### Label Resources
 
 Add, update, or remove labels on Kubernetes resources using `kubectl label`:
@@ -378,6 +403,7 @@ The top-level API surface available in every test callback.
 | `label(input, options?)`                                                | Add, update, or remove labels on a resource       |
 | `get(resource, options?)`                                               | Fetch a resource by API version, kind, and name   |
 | `assert(resource, options?)`                                            | Fetch a resource and run assertions with retries  |
+| `assertAbsence(resource, options?)`                                     | Assert that a resource does not exist             |
 | `assertList(resource, options?)`                                        | Fetch a list of resources and run assertions      |
 | `newNamespace(name?, options?)`                                         | Create an ephemeral namespace (supports `{ generateName }`) |
 | `exec(input, options?)`                                                 | Execute shell commands with optional revert       |
@@ -386,7 +412,7 @@ The top-level API surface available in every test callback.
 
 ### Namespace / Cluster
 
-Returned by `newNamespace()` and `useCluster()` respectively. They expose the same core methods (`apply`, `applyStatus`, `delete`, `label`, `get`, `assert`, `assertList`) scoped to their namespace or cluster context. `Cluster` additionally supports `newNamespace`.
+Returned by `newNamespace()` and `useCluster()` respectively. They expose the same core methods (`apply`, `applyStatus`, `delete`, `label`, `get`, `assert`, `assertAbsence`, `assertList`) scoped to their namespace or cluster context. `Cluster` additionally supports `newNamespace`.
 
 ### Action Options
 
