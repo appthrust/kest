@@ -586,6 +586,51 @@ tests/e2e/
 - [ ] Do `then` assertions only check user-observable state (`status`, contracted outputs)?
 - [ ] Would splitting, merging, or renaming controllers leave all tests passing?
 
+### One scenario per file
+
+Put exactly one test scenario in one file -- from the start, not "when it gets big enough."
+
+It may be tempting to group several short scenarios into one file while they are small. But E2E tests grow: assertions get richer, edge-case inputs appear, debug aids are added. Splitting later is far harder than starting separate, and deciding _when_ to split is an unnecessary judgment call. The simplest policy is the best one: one scenario, one file, always.
+
+```
+tests/e2e/tenant-api/
+├── creates-namespaces-for-each-tenant.test.ts
+├── rejects-duplicate-tenant-names.test.ts
+├── updates-status-on-namespace-failure.test.ts
+└── deletes-child-namespaces-on-removal.test.ts
+```
+
+**Why not "split when it gets big"?**
+
+- Tests grow incrementally -- no single commit feels like "the moment to split," so it never happens.
+- Splitting a file retroactively means rewriting imports, moving fixtures, and touching unrelated tests in the same PR.
+- The threshold itself becomes a debate ("Is 250 lines too many? 400?"). A universal rule eliminates the discussion.
+
+Starting with one file per scenario reserves room to grow. Each file has built-in headroom for richer assertions, additional setup steps, and debug annotations -- without ever crowding a neighbor.
+
+**What you get:**
+
+- **Self-contained reading** -- open one file, see the full Given/When/Then without scrolling past unrelated scenarios.
+- **Surgical diffs** -- a change touches exactly one scenario, keeping PRs small and reviews focused.
+- **Failure as an address** -- a failing file name tells you which API contract broke, before you read a single line of output.
+- **Conflict-free collaboration** -- teammates edit different files, not different sections of the same file.
+
+**Name files after the behavior they verify.** A reader should know what a test checks without opening the file:
+
+| ✅ Good | ❌ Bad |
+| --- | --- |
+| `creates-namespaces-with-labels.test.ts` | `tenant-test-1.test.ts` |
+| `rejects-reserved-selector-labels.test.ts` | `validation.test.ts` |
+| `rolls-out-when-image-changes.test.ts` | `deployment-tests.test.ts` |
+
+**Exceptions.** Tiny negative-case variations of the same API -- where each case is only a few lines and they are always read together (e.g. boundary-condition lists) -- may share a file. When you do this, leave a comment explaining why, because the exception easily becomes the norm.
+
+**One-scenario-per-file checklist:**
+
+- [ ] Does each test file contain exactly one scenario?
+- [ ] Does the file name describe the behavior under test (not the controller)?
+- [ ] If a file has multiple scenarios, is there a comment justifying the exception?
+
 ### Keep manifests visible in your tests
 
 E2E tests double as living documentation. Every test should read as a self-contained specification: what was applied (Given), what changed (When), and what should be true (Then). When a helper function assembles the entire manifest behind the scenes, the test body may _look_ cleaner -- but it stops serving as documentation because the reader can no longer see the actual input.
