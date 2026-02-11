@@ -506,10 +506,10 @@ test("tenant-controller creates namespaces", async (s) => {
 
 The same principle applies to BDD annotations -- keep `s.given()`, `s.when()`, and `s.then()` free of controller names:
 
-| ❌ Controller-centric | ✅ API-centric |
-| --- | --- |
-| `s.given("tenant-controller is running")` | `s.given("a Tenant resource exists")` |
-| `s.when("tenant-controller reconciles")` | `s.when("the Tenant spec is updated")` |
+| ❌ Controller-centric                             | ✅ API-centric                            |
+| ------------------------------------------------- | ----------------------------------------- |
+| `s.given("tenant-controller is running")`         | `s.given("a Tenant resource exists")`     |
+| `s.when("tenant-controller reconciles")`          | `s.when("the Tenant spec is updated")`    |
 | `s.then("tenant-controller creates a Namespace")` | `s.then("the expected Namespace exists")` |
 
 ### Choosing what to test in E2E
@@ -550,18 +550,16 @@ await ns.assert({
   name: "my-db",
   test() {
     // This label may change without affecting users
-    expect(this.metadata?.labels?.["internal.example.com/config-hash"]).toBe(
-      "a1b2c3",
-    );
+    expect(this.metadata?.labels?.["internal.example.com/config-hash"]).toBe("a1b2c3");
   },
 });
 ```
 
-When you find yourself wanting to E2E-test an intermediate resource, ask: *"Is this part of the public API contract?"* If yes, document it as such and test it. If no, push the assertion down to a cheaper test layer and keep E2E focused on what users actually see.
+When you find yourself wanting to E2E-test an intermediate resource, ask: _"Is this part of the public API contract?"_ If yes, document it as such and test it. If no, push the assertion down to a cheaper test layer and keep E2E focused on what users actually see.
 
 ### Organizing test files
 
-Structure test directories around **API resources**, not controllers. This makes the test suite resilient to internal refactoring and immediately tells readers *which API behavior* is being verified.
+Structure test directories around **API resources**, not controllers. This makes the test suite resilient to internal refactoring and immediately tells readers _which API behavior_ is being verified.
 
 ```
 # ✅ Good — organized by API resource
@@ -587,6 +585,111 @@ tests/e2e/
 - [ ] Can a reader understand the test from the manifest and assertions alone?
 - [ ] Do `then` assertions only check user-observable state (`status`, contracted outputs)?
 - [ ] Would splitting, merging, or renaming controllers leave all tests passing?
+
+### Keep manifests visible in your tests
+
+E2E tests double as living documentation. Every test should read as a self-contained specification: what was applied (Given), what changed (When), and what should be true (Then). When a helper function assembles the entire manifest behind the scenes, the test body may _look_ cleaner -- but it stops serving as documentation because the reader can no longer see the actual input.
+
+```ts
+// ❌ Bad — looks tidy, but the actual manifest is hidden inside makeDeployment().
+//    A reader cannot tell what is being applied without jumping to the helper.
+//    The diff between v1 and v2 is buried in a parameter change.
+function makeDeployment(name: string, image: string) {
+  return {
+    apiVersion: "apps/v1",
+    kind: "Deployment",
+    metadata: { name, labels: { app: name } },
+    spec: {
+      replicas: 2,
+      selector: { matchLabels: { app: name } },
+      template: {
+        metadata: { labels: { app: name } },
+        spec: { containers: [{ name: "app", image }] },
+      },
+    },
+  };
+}
+
+test("rollout updates the image", async (s) => {
+  const ns = await s.newNamespace();
+  await ns.apply(makeDeployment("my-app", "my-app:v1"));
+  await ns.apply(makeDeployment("my-app", "my-app:v2"));
+  // What exactly changed? You have to read makeDeployment to find out.
+});
+```
+
+```ts
+// ✅ Good — the full manifest is right here; the diff between steps is obvious.
+test("rollout updates the image", async (s) => {
+  const ns = await s.newNamespace();
+
+  s.when("I apply a Deployment at v1");
+  await ns.apply({
+    apiVersion: "apps/v1",
+    kind: "Deployment",
+    metadata: { name: "my-app" },
+    spec: {
+      replicas: 2,
+      selector: { matchLabels: { app: "my-app" } },
+      template: {
+        metadata: { labels: { app: "my-app" } },
+        spec: { containers: [{ name: "app", image: "my-app:v1" }] },
+      },
+    },
+  });
+
+  s.when("I update to v2");
+  await ns.apply({
+    apiVersion: "apps/v1",
+    kind: "Deployment",
+    metadata: { name: "my-app" },
+    spec: {
+      replicas: 2,
+      selector: { matchLabels: { app: "my-app" } },
+      template: {
+        metadata: { labels: { app: "my-app" } },
+        spec: { containers: [{ name: "app", image: "my-app:v2" }] },
+        //                                          ^^^^^^^^^ the diff
+      },
+    },
+  });
+});
+```
+
+The duplication is intentional -- in E2E tests, **readability beats DRY**. Duplicated manifests make each test self-explanatory and keep failure reports easy to match against the test source. Notice the `^^^ the diff` comment in the example above -- adding a short inline comment to highlight the key change is a simple technique that makes the intent even clearer.
+
+When manifests become too large to inline comfortably, extract them into **static fixture files** instead of helper functions. Both YAML and TypeScript files work:
+
+```ts
+// ✅ Good — static fixture files keep the input visible at a glance
+await ns.apply(import("./fixtures/deployment-v1.yaml"));
+await ns.apply(import("./fixtures/deployment-v2.yaml"));
+
+// TypeScript files work too — useful when converting from inline objects
+await ns.apply(import("./fixtures/deployment-v1.ts"));
+```
+
+If you do use helpers, limit them to **name generation** -- never to assembling `spec`:
+
+```ts
+// ✅ Good — helper generates a name; the manifest stays in the test
+const name = s.generateName("deploy-");
+await ns.apply({
+  apiVersion: "apps/v1",
+  kind: "Deployment",
+  metadata: { name },
+  spec: {
+    /* full spec here, not hidden in a function */
+  },
+});
+```
+
+**Manifest-visibility checklist:**
+
+- [ ] Can you understand the full input by reading just the test file?
+- [ ] Is the diff between test steps visible as a spec-level change?
+- [ ] Can you reconstruct the applied manifest from the failure report alone?
+- [ ] Are helper functions limited to name generation (no `spec` assembly)?
 
 ### Avoiding naming collisions between tests
 
