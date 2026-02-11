@@ -254,8 +254,8 @@ await ns.label({
   kind: "ConfigMap",
   name: "my-config",
   labels: {
-    env: "production",   // add a label
-    deprecated: null,    // remove a label
+    env: "production", // add a label
+    deprecated: null, // remove a label
   },
 });
 ```
@@ -310,33 +310,51 @@ test("ConfigMap lifecycle", async (s) => {
 
 ### Markdown Test Reports
 
-When a test fails (or when `KEST_SHOW_REPORT=1` is set), Kest generates a detailed Markdown report showing every action, the exact `kubectl` commands executed, stdout/stderr output, and cleanup results. This provides full transparency into what happened during the test, making troubleshooting straightforward -- for both humans and AI assistants.
+When a test fails (or when `KEST_SHOW_REPORT=1` is set), Kest generates a detailed Markdown report showing every action, the exact `kubectl` commands executed (including stdin manifests), stdout/stderr output, and cleanup results. This provides full transparency into what happened during the test, making troubleshooting straightforward -- for both humans and AI assistants.
 
-```markdown
+````markdown
 # ConfigMap lifecycle
 
 ## Scenario Overview
 
-| #   | Action           | Resource            | Status |
-| --- | ---------------- | ------------------- | ------ |
-| 1   | Create namespace | kest-9hdhj          | ✅     |
-| 2   | Apply            | ConfigMap/my-config | ✅     |
-| 3   | Assert           | ConfigMap/my-config | ✅     |
+| #   | Action                         | Status |
+| --- | ------------------------------ | ------ |
+| 1   | Apply Namespace `kest-9hdhj`   | ✅     |
+| 2   | Apply `ConfigMap` "my-config"  | ✅     |
+| 3   | Assert `ConfigMap` "my-config" | ✅     |
 
 ## Scenario Details
 
 ### Given: a namespace exists
 
-✅ Create Namespace "kest-9hdhj"
+**✅ Apply Namespace `kest-9hdhj`**
+
+```shell
+kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kest-9hdhj
+EOF
+```
+
 ...
 
 ### Cleanup
 
-| #   | Action           | Resource            | Status |
-| --- | ---------------- | ------------------- | ------ |
-| 1   | Delete           | ConfigMap/my-config | ✅     |
-| 2   | Delete namespace | kest-9hdhj          | ✅     |
+| #   | Action                         | Status |
+| --- | ------------------------------ | ------ |
+| 1   | Delete `ConfigMap` "my-config" | ✅     |
+| 2   | Delete Namespace `kest-9hdhj`  | ✅     |
+
+```shellsession
+$ kubectl delete ConfigMap/my-config -n kest-9hdhj
+configmap "my-config" deleted
+
+$ kubectl delete namespace/kest-9hdhj
+namespace "kest-9hdhj" deleted
 ```
+````
 
 ## Getting Started
 
@@ -410,21 +428,21 @@ Entry point for defining a test scenario. The callback receives a `Scenario` obj
 
 The top-level API surface available in every test callback.
 
-| Method                                                                  | Description                                       |
-| ----------------------------------------------------------------------- | ------------------------------------------------- |
-| `apply(manifest, options?)`                                             | Apply a Kubernetes manifest and register cleanup  |
-| `create(manifest, options?)`                                            | Create a Kubernetes resource and register cleanup |
-| `applyStatus(manifest, options?)`                                       | Apply a status subresource (server-side apply)    |
-| `delete(resource, options?)`                                            | Delete a resource by API version, kind, and name  |
-| `label(input, options?)`                                                | Add, update, or remove labels on a resource       |
-| `get(resource, options?)`                                               | Fetch a resource by API version, kind, and name   |
-| `assert(resource, options?)`                                            | Fetch a resource and run assertions with retries  |
-| `assertAbsence(resource, options?)`                                     | Assert that a resource does not exist             |
-| `assertList(resource, options?)`                                        | Fetch a list of resources and run assertions      |
+| Method                                                                  | Description                                                 |
+| ----------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `apply(manifest, options?)`                                             | Apply a Kubernetes manifest and register cleanup            |
+| `create(manifest, options?)`                                            | Create a Kubernetes resource and register cleanup           |
+| `applyStatus(manifest, options?)`                                       | Apply a status subresource (server-side apply)              |
+| `delete(resource, options?)`                                            | Delete a resource by API version, kind, and name            |
+| `label(input, options?)`                                                | Add, update, or remove labels on a resource                 |
+| `get(resource, options?)`                                               | Fetch a resource by API version, kind, and name             |
+| `assert(resource, options?)`                                            | Fetch a resource and run assertions with retries            |
+| `assertAbsence(resource, options?)`                                     | Assert that a resource does not exist                       |
+| `assertList(resource, options?)`                                        | Fetch a list of resources and run assertions                |
 | `newNamespace(name?, options?)`                                         | Create an ephemeral namespace (supports `{ generateName }`) |
-| `exec(input, options?)`                                                 | Execute shell commands with optional revert       |
-| `useCluster(ref)`                                                       | Create a cluster-bound API surface                |
-| `given(desc)` / `when(desc)` / `then(desc)` / `and(desc)` / `but(desc)` | BDD annotations for reporting                     |
+| `exec(input, options?)`                                                 | Execute shell commands with optional revert                 |
+| `useCluster(ref)`                                                       | Create a cluster-bound API surface                          |
+| `given(desc)` / `when(desc)` / `then(desc)` / `and(desc)` / `but(desc)` | BDD annotations for reporting                               |
 
 ### Namespace / Cluster
 
