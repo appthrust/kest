@@ -77,7 +77,6 @@ export async function retryUntil<T>(
     }
 
     retries += 1;
-    recorder?.record("RetryAttempt", { attempt: retries });
 
     try {
       const value = await fn();
@@ -89,11 +88,6 @@ export async function retryUntil<T>(
       return value;
     } catch (err) {
       lastError = err;
-      const error = err as Error;
-      recorder?.record("RetryFailure", {
-        attempt: retries,
-        error: { name: error.name, message: error.message },
-      });
     }
   }
 

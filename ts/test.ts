@@ -59,7 +59,7 @@ function makeScenarioTest(runner: BunTestRunner): TestFunction {
         reverting,
         reporter,
       });
-
+      recorder.record("ScenarioStart", { name: label });
       let testErr: undefined | Error;
       try {
         await fn(scenario);
@@ -67,6 +67,7 @@ function makeScenarioTest(runner: BunTestRunner): TestFunction {
         testErr = error as Error;
       }
       await scenario.cleanup();
+      recorder.record("ScenarioEnd", {});
       await report(recorder, scenario, testErr);
       if (testErr) {
         throw testErr;

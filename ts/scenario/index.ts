@@ -34,7 +34,6 @@ export interface InternalScenario extends Scenario {
 
 export function createScenario(deps: CreateScenarioOptions): InternalScenario {
   const { recorder, reporter, reverting } = deps;
-  recorder.record("ScenarioStarted", { name: deps.name });
   return {
     apply: createMutateFn(deps, apply),
     create: createMutateFn(deps, create),
@@ -85,17 +84,25 @@ const createMutateFn =
     options?: undefined | ActionOptions
   ): Promise<Output> => {
     const { recorder, kubectl, reverting } = deps;
-    const { type, name, mutate } = action;
-    recorder.record("ActionStart", { action: name, phase: type });
+    const { mutate, describe } = action;
+    function recordActionStart() {
+      recorder.record("ActionStart", {
+        description: describe(input),
+      });
+    }
+    function recordActionEnd(error: undefined | Error) {
+      recorder.record("ActionEnd", { ok: error === undefined, error });
+    }
+    recordActionStart();
     const fn = mutate({ kubectl });
-    let mutateErr: unknown;
+    let mutateErr: undefined | Error;
     try {
       const { revert, output } = await retryUntil(() => fn(input), {
         ...options,
         recorder,
       });
       reverting.add(async () => {
-        recorder.record("ActionStart", { action: name, phase: "revert" });
+        recordActionStart(); // to record revert action start
         let revertErr: unknown;
         try {
           await revert();
@@ -103,25 +110,15 @@ const createMutateFn =
           revertErr = err;
           throw err;
         } finally {
-          recorder.record("ActionEnd", {
-            action: name,
-            phase: "revert",
-            ok: revertErr === undefined,
-            error: revertErr as Error,
-          });
+          recordActionEnd(revertErr as Error); // to record revert action end
         }
       });
       return output;
     } catch (error) {
-      mutateErr = error;
+      mutateErr = error as Error;
       throw error;
     } finally {
-      recorder.record("ActionEnd", {
-        action: name,
-        phase: type,
-        ok: mutateErr === undefined,
-        error: mutateErr as Error,
-      });
+      recordActionEnd(mutateErr as Error);
     }
   };
 
@@ -139,8 +136,8 @@ const createOneWayMutateFn =
     options?: undefined | ActionOptions
   ): Promise<Output> => {
     const { recorder, kubectl } = deps;
-    const { name, mutate } = action;
-    recorder.record("ActionStart", { action: name, phase: "mutate" });
+    const { mutate, describe } = action;
+    recorder.record("ActionStart", { description: describe(input) });
     const fn = mutate({ kubectl });
     let mutateErr: unknown;
     try {
@@ -150,8 +147,6 @@ const createOneWayMutateFn =
       throw error;
     } finally {
       recorder.record("ActionEnd", {
-        action: name,
-        phase: "mutate",
         ok: mutateErr === undefined,
         error: mutateErr as Error,
       });
@@ -172,19 +167,20 @@ const createQueryFn =
     options?: undefined | ActionOptions
   ): Promise<Output> => {
     const { recorder, kubectl } = deps;
-    const { type, name, query } = action;
-    recorder.record("ActionStart", { action: name, phase: type });
+    const { query, describe } = action;
+    recorder.record("ActionStart", { description: describe(input) });
     const fn = query({ kubectl });
+    let queryErr: unknown;
     try {
       return await retryUntil(() => fn(input), { ...options, recorder });
     } catch (error) {
-      recorder.record("ActionEnd", {
-        action: name,
-        phase: type,
-        ok: false,
-        error: error as Error,
-      });
+      queryErr = error;
       throw error;
+    } finally {
+      recorder.record("ActionEnd", {
+        ok: queryErr === undefined,
+        error: queryErr as Error,
+      });
     }
   };
 

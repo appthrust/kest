@@ -1,0 +1,26 @@
+<white># code block highlight</white>
+
+<white>## Scenario Overview</white>
+
+<brightBlack>|</brightBlack><white> # </white><brightBlack>|</brightBlack><white> Action </white><brightBlack>|</brightBlack><white> Status </white><brightBlack>|</brightBlack>
+<brightBlack>|---|--------|--------|</brightBlack>
+<brightBlack>|</brightBlack><white> 1 </white><brightBlack>|</brightBlack><white> Get ConfigMap </white><brightBlack>|</brightBlack><white> ✅ </white><brightBlack>|</brightBlack>
+
+<white>## Scenario Details</white>
+
+<white>### Then: confirm ConfigMap</white>
+
+<brightBlack>**</brightBlack><bold><white>✅ Get ConfigMap</white><brightBlack>**</brightBlack>
+
+<brightBlack>```</brightBlack><white>shell</white>
+<italic><white>kubectl</white><white> </white><white>get</white><white> </white><white>ConfigMap/my-config-1</white><white> </white><white>-n</white><white> </white><white>kest-abc12</white><white> </white><white>-o</white><white> </white><white>yaml</white>
+<brightBlack>```</brightBlack>
+
+<brightBlack>```</brightBlack><white>yaml title="stdout"</white>
+<white>apiVersion</white><white>:</white><white> </white><white>v1</white>
+<white>kind</white><white>:</white><white> </white><white>ConfigMap</white>
+<white>metadata</white><white>:</white>
+<white>  </white><white>name</white><white>:</white><white> </white><white>my-config-1</white>
+<white>  </white><white>namespace</white><white>:</white><white> </white><white>kest-abc12</white>
+<brightBlack>```</brightBlack>
+</italic></bold>

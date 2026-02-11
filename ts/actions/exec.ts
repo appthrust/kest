@@ -17,5 +17,8 @@ export const exec = {
       revert: revert ? () => revert(context) : noopRevert,
     };
   },
+  describe: () => {
+    return "Execute arbitrary processing";
+  },
   // biome-ignore lint/suspicious/noExplicitAny: 本当はunknownにしたいが、createMutateFnとの噛み合せが難しいためanyにしている
 } satisfies MutateDef<ExecInput<any>, unknown>;

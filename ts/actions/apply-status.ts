@@ -1,5 +1,5 @@
 import type { ApplyingManifest } from "../apis";
-import { parseK8sResourceAny } from "../k8s-resource";
+import { getResourceMeta, parseK8sResourceAny } from "../k8s-resource";
 import type { OneWayMutateDef } from "./types";
 
 export const applyStatus = {
@@ -20,4 +20,11 @@ export const applyStatus = {
       await kubectl.applyStatus(result.value);
       return undefined;
     },
+  describe: (manifest) => {
+    const meta = getResourceMeta(manifest);
+    if (meta === undefined) {
+      return "Apply status of a resource";
+    }
+    return `Apply status of \`${meta.kind}\` "${meta.name}"`;
+  },
 } satisfies OneWayMutateDef<ApplyingManifest, void>;

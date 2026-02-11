@@ -28,6 +28,9 @@ export const assertList = {
       await condition.test.call(typed, typed);
       return typed;
     },
+  describe: <T extends K8sResource>(condition: ResourceListTest<T>): string => {
+    return `Assert a list of \`${condition.kind}\` resources`;
+  },
 } satisfies QueryDef<ResourceListTest, Array<K8sResource>>;
 
 function isSameGVK<T extends K8sResource>(

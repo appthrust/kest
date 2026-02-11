@@ -20,10 +20,15 @@ test("retryUntil records success flow events", async () => {
   expect(value).toBe("ok");
 
   const kinds = recorder.getEvents().map((e) => e.kind);
-  // First call is not a "retry", so attempts start from the 2nd call.
-  expect(kinds.filter((k) => k === "RetryAttempt").length).toBe(2);
-  expect(kinds.filter((k) => k === "RetryFailure").length).toBe(1);
-  expect(kinds.at(-1)).toBe("RetryEnd");
+  expect(kinds).toEqual(["RetryStart", "RetryEnd"]);
+
+  const end = recorder.getEvents().at(-1);
+  expect(end?.kind).toBe("RetryEnd");
+  if (end?.kind === "RetryEnd") {
+    // First call is not a "retry", so attempts start from the 2nd call.
+    expect(end.data.attempts).toBe(2);
+    expect(end.data.success).toBe(true);
+  }
 });
 
 test("retryUntil records timeout flow events", async () => {
@@ -49,6 +54,5 @@ test("retryUntil records timeout flow events", async () => {
   const kinds = recorder.getEvents().map((e) => e.kind);
   expect(kinds[0]).toBe("RetryStart");
   expect(kinds.at(-1)).toBe("RetryEnd");
-  expect(kinds.includes("RetryFailure")).toBe(true);
   expect(n).toBeGreaterThan(0);
 });

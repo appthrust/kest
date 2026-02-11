@@ -19,6 +19,9 @@ export const assert = {
       await condition.test.call(fetched, fetched);
       return fetched;
     },
+  describe: <T extends K8sResource>(condition: ResourceTest<T>): string => {
+    return `Assert \`${condition.kind}\` "${condition.name}"`;
+  },
 } satisfies QueryDef<ResourceTest, K8sResource>;
 
 function toKubectlType<T extends K8sResource>(

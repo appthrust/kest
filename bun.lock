@@ -11,6 +11,7 @@
       "devDependencies": {
         "@biomejs/biome": "^2.3.13",
         "@suin/biome.json": "^0.1.0",
+        "@taml/encoder": "^1.0.0",
         "@tsconfig/bun": "^1.0.10",
         "@tsconfig/strictest": "^2.0.8",
         "@types/bun": "^1.3.7",
@@ -99,6 +100,8 @@
     "@suin/biome.json": ["@suin/biome.json@0.1.0", "", {}, "sha512-YauEnVrhFoJIfBEqs4xKZEtWq84zADmTVHJjxh0NYY4kdd1y2CGMh40/FchF+U34wiwBE2AfVP1bw0Ny7RDNIw=="],
 
     "@suin/shell-escape-arg": ["@suin/shell-escape-arg@0.1.2", "", {}, "sha512-goE+k1K1NOTq3ooU17QsjF0lHVTpE1CfK8U7Ep57nEA9YP7ORBFCM+xDnYdl1iRw6UczWxLunNO0jV0qPTkAhg=="],
+
+    "@taml/encoder": ["@taml/encoder@1.0.0", "", {}, "sha512-iRnFs2BWVDwaCU0Cl/zhX3JXrxQK9WysvBdkmsO98FALvwrpBiCBPdDPNWUX79dxYuB9PjDXTrKWfPZAa9DVDw=="],
 
     "@tsconfig/bun": ["@tsconfig/bun@1.0.10", "", {}, "sha512-5AV5YknQjNyoYzZ/8NG0dawqew/wH+x7ANiCfCIn29qo0cdbd1EryvFD1k5NSZWLBMOI/fGqMIaxi58GPIP9Cg=="],
 

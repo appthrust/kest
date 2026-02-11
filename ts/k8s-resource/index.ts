@@ -118,3 +118,25 @@ export interface ESM {
 function isESM(value: unknown): value is ESM {
   return typeof value === "object" && value !== null && "default" in value;
 }
+
+export function getResourceMeta(
+  value: unknown
+): undefined | { kind: string; name: string } {
+  if (typeof value === "string") {
+    const result = parseK8sResourceYaml(value);
+    if (result.ok) {
+      return { kind: result.value.kind, name: result.value.metadata.name };
+    }
+  }
+  if (isESM(value)) {
+    const result = parseK8sResourceFromESM(value);
+    if (result.ok) {
+      return { kind: result.value.kind, name: result.value.metadata.name };
+    }
+  }
+  const result = parseK8sResource(value);
+  if (result.ok) {
+    return { kind: result.value.kind, name: result.value.metadata.name };
+  }
+  return undefined;
+}

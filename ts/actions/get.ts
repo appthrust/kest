@@ -15,6 +15,9 @@ export const get = {
         ...finding,
         test: (fetched) => assertSameGVK<T>(finding, fetched),
       }),
+  describe: (finding) => {
+    return `Get \`${finding.kind}\` "${finding.name}"`;
+  },
 } satisfies QueryDef<K8sResourceReference, K8sResource>;
 
 function isSameGVK<T extends K8sResource>(

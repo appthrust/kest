@@ -22,6 +22,8 @@ export const assertAbsence = {
         `Expected ${resource.kind} "${resource.name}" to be absent, but it exists`
       );
     },
+  describe: (resource) =>
+    `Assert that \`${resource.kind}\` "${resource.name}" is absent`,
 } satisfies QueryDef<K8sResourceReference, void>;
 
 /**

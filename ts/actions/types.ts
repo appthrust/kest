@@ -6,6 +6,7 @@ export interface MutateDef<Input, Output> {
   readonly type: "mutate";
   readonly name: string;
   readonly mutate: Mutate<Input, Output>;
+  readonly describe: (input: Input) => string;
 }
 
 export type Mutate<Input, Output> = (
@@ -27,6 +28,7 @@ export interface OneWayMutateDef<Input, Output> {
   readonly type: "oneWayMutate";
   readonly name: string;
   readonly mutate: OneWayMutate<Input, Output>;
+  readonly describe: (input: Input) => string;
 }
 
 export type OneWayMutate<Input, Output> = (
@@ -37,6 +39,7 @@ export interface QueryDef<Input, Output> {
   readonly type: "query";
   readonly name: string;
   readonly query: Query<Input, Output>;
+  readonly describe: (input: Input) => string;
 }
 
 export type Query<Input, Output> = (

@@ -1,0 +1,30 @@
+<white># stdin yaml highlight</white>
+
+<white>## Scenario Overview</white>
+
+<brightBlack>|</brightBlack><white> # </white><brightBlack>|</brightBlack><white> Action </white><brightBlack>|</brightBlack><white> Status </white><brightBlack>|</brightBlack>
+<brightBlack>|---|--------|--------|</brightBlack>
+<brightBlack>|</brightBlack><white> 1 </white><brightBlack>|</brightBlack><white> Apply </white><white>`ConfigMap`</white><white> "my-config-1" </white><brightBlack>|</brightBlack><white> ✅ </white><brightBlack>|</brightBlack>
+
+<white>## Scenario Details</white>
+
+<white>### When: apply ConfigMap</white>
+
+<brightBlack>**</brightBlack><bold><white>✅ Apply </white><white>`</white><white>ConfigMap</white><white>`</white><white> "my-config-1"</white><brightBlack>**</brightBlack>
+
+<brightBlack>```</brightBlack><white>shell</white>
+<italic><white>kubectl</white><white> </white><white>apply</white><white> </white><white>-f</white><white> </white><white>-</white><white> </white><white>&lt;&lt;</white><white>EOF</white>
+<white>apiVersion</white><white>:</white><white> </white><white>v1</white>
+<white>kind</white><white>:</white><white> </white><white>ConfigMap</white>
+<white>metadata</white><white>:</white><white> </white>
+<white>  </white><white>name</white><white>:</white><white> </white><white>my-config-1</white>
+<white>  </white><white>namespace</white><white>:</white><white> </white><white>kest-abc12</white>
+<white>data</white><white>:</white><white> </white>
+<white>  </white><white>mode</white><white>:</white><white> </white><white>demo-1</white>
+<white>EOF</white>
+<brightBlack>```</brightBlack>
+
+<brightBlack>```</brightBlack><white>text title="stdout"</white>
+<white>configmap/my-config-1 created</white>
+<brightBlack>```</brightBlack>
+</italic></bold>

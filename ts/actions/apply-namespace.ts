@@ -30,6 +30,15 @@ export const applyNamespace = {
       });
       return { revert, output: name };
     },
+  describe: (input) => {
+    if (input === undefined) {
+      return "Apply `Namespace` with auto-generated name";
+    }
+    if (typeof input === "string") {
+      return `Apply \`Namespace\` "${input}"`;
+    }
+    return `Apply \`Namespace\` with prefix "${input.generateName}"`;
+  },
 } satisfies MutateDef<ApplyNamespaceInput, string>;
 
 function resolveNamespaceName(input: ApplyNamespaceInput): string {

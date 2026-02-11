@@ -1,0 +1,18 @@
+<white># ansi enabled</white>
+
+<white>## Scenario Overview</white>
+
+<brightBlack>|</brightBlack><white> # </white><brightBlack>|</brightBlack><white> Action </white><brightBlack>|</brightBlack><white> Status </white><brightBlack>|</brightBlack>
+<brightBlack>|---|--------|--------|</brightBlack>
+<brightBlack>|</brightBlack><white> 1 </white><brightBlack>|</brightBlack><white> Check health </white><brightBlack>|</brightBlack><white> ❌ </white><brightBlack>|</brightBlack>
+
+<white>## Scenario Details</white>
+
+<brightBlack>**</brightBlack><bold><white>❌ Check health</white><brightBlack>**</brightBlack>
+
+<white>Error:</white>
+
+<brightBlack>```</brightBlack><white>text</white>
+<white>boom</white>
+<brightBlack>```</brightBlack>
+</bold>

@@ -17,4 +17,7 @@ export const label = {
       });
       return undefined;
     },
+  describe: (input) => {
+    return `Label \`${input.kind}\` "${input.name}"`;
+  },
 } satisfies OneWayMutateDef<LabelInput, void>;

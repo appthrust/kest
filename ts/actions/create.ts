@@ -1,5 +1,5 @@
 import type { ApplyingManifest } from "../apis";
-import { parseK8sResourceAny } from "../k8s-resource";
+import { getResourceMeta, parseK8sResourceAny } from "../k8s-resource";
 import type { MutateDef } from "./types";
 
 export const create = {
@@ -24,4 +24,11 @@ export const create = {
         output: undefined,
       };
     },
+  describe: (manifest) => {
+    const meta = getResourceMeta(manifest);
+    if (meta === undefined) {
+      return "Create a resource";
+    }
+    return `Create \`${meta.kind}\` "${meta.name}"`;
+  },
 } satisfies MutateDef<ApplyingManifest, void>;

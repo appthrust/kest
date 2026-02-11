@@ -11,4 +11,7 @@ export const deleteResource = {
       await kubectl.delete(toKubectlType(resource), resource.name);
       return undefined;
     },
+  describe: (resource) => {
+    return `Delete \`${resource.kind}\` "${resource.name}"`;
+  },
 } satisfies OneWayMutateDef<K8sResourceReference, void>;
