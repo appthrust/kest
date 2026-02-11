@@ -1,13 +1,13 @@
 import { apply } from "../actions/apply";
-import {
-  type ApplyNamespaceInput,
-  applyNamespace,
-} from "../actions/apply-namespace";
 import { applyStatus } from "../actions/apply-status";
 import { assert } from "../actions/assert";
 import { assertAbsence } from "../actions/assert-absence";
 import { assertList } from "../actions/assert-list";
 import { create } from "../actions/create";
+import {
+  type CreateNamespaceInput,
+  createNamespace,
+} from "../actions/create-namespace";
 import { deleteResource } from "../actions/delete";
 import { exec } from "../actions/exec";
 import { get } from "../actions/get";
@@ -187,10 +187,10 @@ const createQueryFn =
 const createNewNamespaceFn =
   (scenarioDeps: CreateScenarioOptions) =>
   async (
-    name?: ApplyNamespaceInput,
+    name?: CreateNamespaceInput,
     options?: undefined | ActionOptions
   ): Promise<Namespace> => {
-    const namespaceName = await createMutateFn(scenarioDeps, applyNamespace)(
+    const namespaceName = await createMutateFn(scenarioDeps, createNamespace)(
       name,
       options
     );

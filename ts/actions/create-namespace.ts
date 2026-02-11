@@ -1,4 +1,4 @@
-import { apply } from "./apply";
+import { create } from "./create";
 import type { MutateDef } from "./types";
 
 /**
@@ -9,19 +9,19 @@ import type { MutateDef } from "./types";
  * - `{ generateName: string }` -- use the string as a prefix followed by
  *   random characters (e.g. `{ generateName: "foo-" }` → `"foo-d7kpn"`).
  */
-export type ApplyNamespaceInput =
+export type CreateNamespaceInput =
   | undefined
   | string
   | { readonly generateName: string };
 
-export const applyNamespace = {
+export const createNamespace = {
   type: "mutate",
-  name: "ApplyNamespace",
+  name: "CreateNamespace",
   mutate:
     ({ kubectl }) =>
     async (input) => {
       const name = resolveNamespaceName(input);
-      const { revert } = await apply.mutate({ kubectl })({
+      const { revert } = await create.mutate({ kubectl })({
         apiVersion: "v1",
         kind: "Namespace",
         metadata: {
@@ -32,16 +32,16 @@ export const applyNamespace = {
     },
   describe: (input) => {
     if (input === undefined) {
-      return "Apply `Namespace` with auto-generated name";
+      return "Create `Namespace` with auto-generated name";
     }
     if (typeof input === "string") {
-      return `Apply \`Namespace\` "${input}"`;
+      return `Create \`Namespace\` "${input}"`;
     }
-    return `Apply \`Namespace\` with prefix "${input.generateName}"`;
+    return `Create \`Namespace\` with prefix "${input.generateName}"`;
   },
-} satisfies MutateDef<ApplyNamespaceInput, string>;
+} satisfies MutateDef<CreateNamespaceInput, string>;
 
-function resolveNamespaceName(input: ApplyNamespaceInput): string {
+function resolveNamespaceName(input: CreateNamespaceInput): string {
   if (input === undefined) {
     return `kest-${randomConsonantDigits(5)}`;
   }
