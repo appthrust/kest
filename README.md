@@ -440,6 +440,7 @@ The top-level API surface available in every test callback.
 | `assertAbsence(resource, options?)`                                     | Assert that a resource does not exist                       |
 | `assertList(resource, options?)`                                        | Fetch a list of resources and run assertions                |
 | `newNamespace(name?, options?)`                                         | Create an ephemeral namespace (supports `{ generateName }`) |
+| `generateName(prefix)`                                                  | Generate a random-suffix name (statistical uniqueness)      |
 | `exec(input, options?)`                                                 | Execute shell commands with optional revert                 |
 | `useCluster(ref)`                                                       | Create a cluster-bound API surface                          |
 | `given(desc)` / `when(desc)` / `then(desc)` / `and(desc)` / `but(desc)` | BDD annotations for reporting                               |
@@ -458,6 +459,38 @@ All actions accept an optional options object for retry configuration.
 | `interval` | `string` | `"200ms"` | Delay between retry attempts |
 
 Duration strings support units like `"200ms"`, `"5s"`, `"1m"`.
+
+## Best Practices
+
+### Avoiding naming collisions between tests
+
+When tests run in parallel, hard-coded resource names can collide (especially when you create cluster-scoped resources).
+
+Kest offers a few ways to avoid these collisions:
+
+- Use `s.newNamespace()` to isolate namespaced resources per test (recommended default).
+- Use `s.newNamespace({ generateName: "prefix-" })` to keep isolation while making the namespace name easier to recognize in logs/reports.
+- Use `s.generateName("prefix-")` to generate a random-suffix name when you need additional names outside of `newNamespace` (e.g. cluster-scoped resources).
+
+`s.newNamespace(...)` actually creates the `Namespace` via `kubectl create` and retries on name collisions (regenerating a new name each attempt), so once it succeeds the namespace name is unique in the cluster. `s.generateName(...)` is a pure string helper and provides **statistical uniqueness** only (collisions are extremely unlikely, but not impossible).
+
+```ts
+s.given("a cluster-scoped resource name should not collide with other tests");
+const roleName = s.generateName("kest-e2e-role-");
+
+await s.create({
+  apiVersion: "rbac.authorization.k8s.io/v1",
+  kind: "ClusterRole",
+  metadata: { name: roleName },
+  rules: [
+    {
+      apiGroups: [""],
+      resources: ["configmaps"],
+      verbs: ["get", "list"],
+    },
+  ],
+});
+```
 
 ## Type Safety
 

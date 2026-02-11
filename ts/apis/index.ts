@@ -332,6 +332,34 @@ export interface Scenario {
     options?: undefined | ActionOptions
   ): Promise<Namespace>;
 
+  /**
+   * Generates a random, Kubernetes-friendly name with the given prefix.
+   *
+   * This is a pure helper (no kubectl calls). Useful when you need multiple
+   * unique names within a single scenario, especially when you need custom
+   * metadata (e.g. labels) and can't use {@link Scenario.newNamespace}.
+   *
+   * @example
+   * ```ts
+   * // Useful for cluster-scoped resources (names must be unique cluster-wide)
+   * const roleName = s.generateName("kest-e2e-role-");
+   *
+   * await s.create({
+   *   apiVersion: "rbac.authorization.k8s.io/v1",
+   *   kind: "ClusterRole",
+   *   metadata: { name: roleName },
+   *   rules: [
+   *     {
+   *       apiGroups: [""],
+   *       resources: ["configmaps"],
+   *       verbs: ["get", "list"],
+   *     },
+   *   ],
+   * });
+   * ```
+   */
+  generateName(prefix: string): string;
+
   // Shell command actions
 
   /**

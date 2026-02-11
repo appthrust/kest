@@ -22,6 +22,7 @@ import type {
 } from "../apis";
 import bdd from "../bdd";
 import type { Kubectl } from "../kubectl";
+import { generateName as generateRandomName } from "../naming";
 import type { Recorder } from "../recording";
 import type { Reporter } from "../reporter/interface";
 import { retryUntil } from "../retry";
@@ -51,6 +52,7 @@ export function createScenario(deps: CreateScenarioOptions): InternalScenario {
     then: bdd.then(deps),
     and: bdd.and(deps),
     but: bdd.but(deps),
+    generateName: (prefix: string) => generateRandomName(prefix),
     newNamespace: createNewNamespaceFn(deps),
     useCluster: createUseClusterFn(deps),
     async cleanup() {

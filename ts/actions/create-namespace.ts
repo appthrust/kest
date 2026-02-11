@@ -1,5 +1,6 @@
 import { create } from "./create";
 import type { MutateDef } from "./types";
+import { generateName } from "../naming";
 
 /**
  * Input for namespace creation.
@@ -43,19 +44,10 @@ export const createNamespace = {
 
 function resolveNamespaceName(input: CreateNamespaceInput): string {
   if (input === undefined) {
-    return `kest-${randomConsonantDigits(5)}`;
+    return generateName("kest-", 5);
   }
   if (typeof input === "string") {
     return input;
   }
-  return `${input.generateName}${randomConsonantDigits(5)}`;
-}
-
-function randomConsonantDigits(length = 8): string {
-  const chars = "bcdfghjklmnpqrstvwxyz0123456789";
-  let result = "";
-  for (let i = 0; i < length; i++) {
-    result += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return result;
+  return generateName(input.generateName, 5);
 }
