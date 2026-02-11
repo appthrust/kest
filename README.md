@@ -462,6 +462,132 @@ Duration strings support units like `"200ms"`, `"5s"`, `"1m"`.
 
 ## Best Practices
 
+### Test API contracts, not controllers
+
+E2E tests should describe **how an API behaves from the user's perspective**, not how a specific controller implements that behavior internally. The subject of every test should be the API resource, not the controller behind it.
+
+Why? Controllers are an implementation detail. They get renamed, split, merged, or rewritten -- but as long as the API contract is unchanged, users are unaffected. If your tests are written in terms of controllers, a harmless refactor can break your entire test suite.
+
+```ts
+// ✅ Good — the subject is the API resource
+test("Tenant API creates namespaces for each tenant", async (s) => {
+  s.given("a Tenant resource is applied");
+  const ns = await s.newNamespace();
+  await ns.apply({
+    apiVersion: "example.com/v1",
+    kind: "Tenant",
+    metadata: { name: "acme" },
+    spec: { namespaces: ["dev", "staging"] },
+  });
+
+  s.then("the Tenant reports Ready=True");
+  await ns.assert({
+    apiVersion: "example.com/v1",
+    kind: "Tenant",
+    name: "acme",
+    test() {
+      expect(this.status?.conditions).toContainEqual(
+        expect.objectContaining({ type: "Ready", status: "True" }),
+      );
+    },
+  });
+});
+```
+
+```ts
+// ❌ Bad — the subject is the controller (implementation detail)
+test("tenant-controller creates namespaces", async (s) => {
+  s.given("tenant-controller is running");
+  // ...
+  s.then("tenant-controller creates child namespaces");
+  // ...
+});
+```
+
+The same principle applies to BDD annotations -- keep `s.given()`, `s.when()`, and `s.then()` free of controller names:
+
+| ❌ Controller-centric | ✅ API-centric |
+| --- | --- |
+| `s.given("tenant-controller is running")` | `s.given("a Tenant resource exists")` |
+| `s.when("tenant-controller reconciles")` | `s.when("the Tenant spec is updated")` |
+| `s.then("tenant-controller creates a Namespace")` | `s.then("the expected Namespace exists")` |
+
+### Choosing what to test in E2E
+
+E2E tests are powerful for validating **user-observable behavior** but expensive for verifying internal details. Placing implementation details in E2E tests makes refactoring harder without giving users any extra confidence.
+
+**Good candidates for E2E (API contract):**
+
+- Status transitions -- e.g. a resource reaches `Ready=True` after creation
+- Error feedback -- e.g. invalid input produces an explanatory condition like `Ready=False, reason=InvalidSpec`
+- User-facing side effects -- e.g. resources that users are expected to observe or interact with
+
+```ts
+// ✅ Assert a user-observable status condition
+await ns.assert({
+  apiVersion: "example.com/v1",
+  kind: "Database",
+  name: "my-db",
+  test() {
+    expect(this.status?.conditions).toContainEqual(
+      expect.objectContaining({ type: "Ready", status: "True" }),
+    );
+  },
+});
+```
+
+**Better left to unit / integration tests (implementation details):**
+
+- Internal label keys, annotation formats, or hash values
+- Intermediate resources that users don't directly interact with
+- Controller-internal reconciliation logic and branching
+
+```ts
+// ❌ Avoid — internal label format is an implementation detail
+await ns.assert({
+  apiVersion: "example.com/v1",
+  kind: "Database",
+  name: "my-db",
+  test() {
+    // This label may change without affecting users
+    expect(this.metadata?.labels?.["internal.example.com/config-hash"]).toBe(
+      "a1b2c3",
+    );
+  },
+});
+```
+
+When you find yourself wanting to E2E-test an intermediate resource, ask: *"Is this part of the public API contract?"* If yes, document it as such and test it. If no, push the assertion down to a cheaper test layer and keep E2E focused on what users actually see.
+
+### Organizing test files
+
+Structure test directories around **API resources**, not controllers. This makes the test suite resilient to internal refactoring and immediately tells readers *which API behavior* is being verified.
+
+```
+# ✅ Good — organized by API resource
+tests/e2e/
+├── tenant-api/
+│   ├── creation.test.ts
+│   └── deletion.test.ts
+├── database-api/
+│   └── provisioning.test.ts
+
+# ❌ Bad — organized by controller (implementation detail)
+tests/e2e/
+├── tenant-controller/
+│   ├── creation.test.ts
+│   └── deletion.test.ts
+├── database-controller/
+│   └── provisioning.test.ts
+```
+
+**Refactoring-friendliness checklist** -- the more "yes" answers, the better your E2E tests:
+
+- [ ] Is the subject of every test an API resource (not a controller)?
+- [ ] Can a reader understand the test from the manifest and assertions alone?
+- [ ] Do `then` assertions only check user-observable state (`status`, contracted outputs)?
+- [ ] Would splitting, merging, or renaming controllers leave all tests passing?
+
 ### Avoiding naming collisions between tests
 
 When tests run in parallel, hard-coded resource names can collide (especially when you create cluster-scoped resources).
