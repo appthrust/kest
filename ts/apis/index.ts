@@ -297,6 +297,52 @@ export interface Scenario {
   ): Promise<Array<T>>;
 
   /**
+   * Fetches a list of Kubernetes resources, asserts that exactly one matches
+   * the optional `where` predicate, and runs a test function on it.
+   *
+   * When `where` is omitted, all resources of the given kind are candidates;
+   * the method then asserts that exactly one resource of that kind exists.
+   *
+   * The `test` callback is invoked with `this` bound to the matching resource.
+   * If the callback throws (or rejects), the assertion fails and the whole
+   * action is retried until it succeeds or times out.
+   *
+   * @template T - The expected Kubernetes resource shape.
+   * @param resource - Group/version/kind selector, optional `where` predicate,
+   *   and test callback.
+   * @param options - Retry options such as timeout and polling interval.
+   *
+   * @example
+   * ```ts
+   * // Assert exactly one ConfigMap exists and check its data
+   * await s.assertOne({
+   *   apiVersion: "v1",
+   *   kind: "ConfigMap",
+   *   test() {
+   *     expect(this.data?.mode).toBe("demo");
+   *   },
+   * });
+   * ```
+   *
+   * @example
+   * ```ts
+   * // Find the one ConfigMap whose name starts with "generated-"
+   * await s.assertOne({
+   *   apiVersion: "v1",
+   *   kind: "ConfigMap",
+   *   where: (cm) => cm.metadata.name.startsWith("generated-"),
+   *   test() {
+   *     expect(this.data?.mode).toBe("auto");
+   *   },
+   * });
+   * ```
+   */
+  assertOne<T extends K8sResource>(
+    resource: ResourceOneTest<T>,
+    options?: undefined | ActionOptions
+  ): Promise<T>;
+
+  /**
    * Creates a new namespace and returns a namespaced API surface.
    *
    * When `name` is omitted, a unique namespace name is generated (e.g.
@@ -687,6 +733,32 @@ export interface Cluster {
   ): Promise<Array<T>>;
 
   /**
+   * Fetches a list of Kubernetes resources, asserts that exactly one matches
+   * the optional `where` predicate, and runs a test function on it.
+   *
+   * @template T - The expected Kubernetes resource shape.
+   * @param resource - Group/version/kind selector, optional `where` predicate,
+   *   and test callback.
+   * @param options - Retry options such as timeout and polling interval.
+   *
+   * @example
+   * ```ts
+   * await cluster.assertOne({
+   *   apiVersion: "v1",
+   *   kind: "Namespace",
+   *   where: (ns) => ns.metadata.name === "my-namespace",
+   *   test() {
+   *     expect(this.metadata.labels?.env).toBe("production");
+   *   },
+   * });
+   * ```
+   */
+  assertOne<T extends K8sResource>(
+    resource: ResourceOneTest<T>,
+    options?: undefined | ActionOptions
+  ): Promise<T>;
+
+  /**
    * Creates a new namespace in this cluster and returns a namespaced API.
    *
    * @param name - Optional namespace name, or `{ generateName }` for prefixed
@@ -963,6 +1035,32 @@ export interface Namespace {
     resource: ResourceListTest<T>,
     options?: undefined | ActionOptions
   ): Promise<Array<T>>;
+
+  /**
+   * Fetches a list of namespaced Kubernetes resources, asserts that exactly one
+   * matches the optional `where` predicate, and runs a test function on it.
+   *
+   * @template T - The expected Kubernetes resource shape.
+   * @param resource - Group/version/kind selector, optional `where` predicate,
+   *   and test callback.
+   * @param options - Retry options such as timeout and polling interval.
+   *
+   * @example
+   * ```ts
+   * await ns.assertOne({
+   *   apiVersion: "v1",
+   *   kind: "ConfigMap",
+   *   where: (cm) => cm.metadata.name.startsWith("generated-"),
+   *   test() {
+   *     expect(this.data?.mode).toBe("auto");
+   *   },
+   * });
+   * ```
+   */
+  assertOne<T extends K8sResource>(
+    resource: ResourceOneTest<T>,
+    options?: undefined | ActionOptions
+  ): Promise<T>;
 }
 
 /**
@@ -1144,6 +1242,41 @@ export interface ResourceListTest<T extends K8sResource = K8sResource> {
     this: Array<T>,
     resources: Array<T>
   ) => unknown | Promise<unknown>;
+}
+
+/**
+ * A test definition for {@link Scenario.assertOne}.
+ *
+ * Fetches a list of resources, filters by an optional `where` predicate, asserts
+ * that exactly one resource matches, then runs the `test` callback on it.
+ */
+export interface ResourceOneTest<T extends K8sResource = K8sResource> {
+  /**
+   * Kubernetes API version (e.g. `"v1"`, `"apps/v1"`).
+   */
+  readonly apiVersion: T["apiVersion"];
+
+  /**
+   * Kubernetes kind (e.g. `"ConfigMap"`, `"Deployment"`).
+   */
+  readonly kind: T["kind"];
+
+  /**
+   * Optional predicate to narrow which resources are candidates.
+   *
+   * When omitted, all resources of the given kind are candidates.
+   * Combined with the strict uniqueness check this means "assert there is
+   * exactly one resource of this kind."
+   */
+  readonly where?: undefined | ((resource: T) => boolean);
+
+  /**
+   * Assertion callback.
+   *
+   * The callback is invoked with `this` bound to the single matching resource.
+   * Throwing (or rejecting) signals a failed assertion.
+   */
+  readonly test: (this: T, resource: T) => unknown | Promise<unknown>;
 }
 
 /**

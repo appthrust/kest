@@ -3,6 +3,7 @@ import { applyStatus } from "../actions/apply-status";
 import { assert } from "../actions/assert";
 import { assertAbsence } from "../actions/assert-absence";
 import { assertList } from "../actions/assert-list";
+import { assertOne } from "../actions/assert-one";
 import { create } from "../actions/create";
 import {
   type CreateNamespaceInput,
@@ -46,6 +47,7 @@ export function createScenario(deps: CreateScenarioOptions): InternalScenario {
     assert: createQueryFn(deps, assert),
     assertAbsence: createQueryFn(deps, assertAbsence),
     assertList: createQueryFn(deps, assertList),
+    assertOne: createQueryFn(deps, assertOne),
     given: bdd.given(deps),
     when: bdd.when(deps),
     // biome-ignore lint/suspicious/noThenProperty: BDD DSL uses `then()` method name
@@ -210,6 +212,7 @@ const createNewNamespaceFn =
       assert: createQueryFn(namespacedDeps, assert),
       assertAbsence: createQueryFn(namespacedDeps, assertAbsence),
       assertList: createQueryFn(namespacedDeps, assertList),
+      assertOne: createQueryFn(namespacedDeps, assertOne),
     };
   };
 
@@ -233,6 +236,7 @@ const createUseClusterFn =
       assert: createQueryFn(clusterDeps, assert),
       assertAbsence: createQueryFn(clusterDeps, assertAbsence),
       assertList: createQueryFn(clusterDeps, assertList),
+      assertOne: createQueryFn(clusterDeps, assertOne),
       newNamespace: createNewNamespaceFn(clusterDeps),
     };
   };

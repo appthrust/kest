@@ -226,6 +226,37 @@ await ns.assertList<ConfigMap>({
 });
 ```
 
+### Single-Resource List Assertions
+
+Assert that exactly one resource of a kind exists (or matches a predicate) and test it:
+
+```ts
+// Assert exactly one ConfigMap exists and check its data
+await ns.assertOne<ConfigMap>({
+  apiVersion: "v1",
+  kind: "ConfigMap",
+  test() {
+    expect(this.data?.mode).toBe("demo");
+  },
+});
+```
+
+Use the optional `where` predicate to narrow candidates when multiple resources exist:
+
+```ts
+// Find the one ConfigMap whose name starts with "generated-"
+await ns.assertOne<ConfigMap>({
+  apiVersion: "v1",
+  kind: "ConfigMap",
+  where: (cm) => cm.metadata.name.startsWith("generated-"),
+  test() {
+    expect(this.data?.mode).toBe("auto");
+  },
+}, { timeout: "30s", interval: "1s" });
+```
+
+`assertOne` throws if zero or more than one resource matches, and retries until exactly one is found or the timeout expires.
+
 ### Absence Assertions
 
 Assert that a resource does not exist (e.g. after deletion or to verify a controller hasn't created something):
@@ -446,6 +477,7 @@ The top-level API surface available in every test callback.
 | `assert(resource, options?)`                                            | Fetch a resource and run assertions with retries            |
 | `assertAbsence(resource, options?)`                                     | Assert that a resource does not exist                       |
 | `assertList(resource, options?)`                                        | Fetch a list of resources and run assertions                |
+| `assertOne(resource, options?)`                                         | Assert exactly one resource matches, then run assertions    |
 | `newNamespace(name?, options?)`                                         | Create an ephemeral namespace (supports `{ generateName }`) |
 | `generateName(prefix)`                                                  | Generate a random-suffix name (statistical uniqueness)      |
 | `exec(input, options?)`                                                 | Execute shell commands with optional revert                 |
@@ -454,7 +486,7 @@ The top-level API surface available in every test callback.
 
 ### Namespace / Cluster
 
-Returned by `newNamespace()` and `useCluster()` respectively. They expose the same core methods (`apply`, `create`, `applyStatus`, `delete`, `label`, `get`, `assert`, `assertAbsence`, `assertList`) scoped to their namespace or cluster context. `Cluster` additionally supports `newNamespace`.
+Returned by `newNamespace()` and `useCluster()` respectively. They expose the same core methods (`apply`, `create`, `applyStatus`, `delete`, `label`, `get`, `assert`, `assertAbsence`, `assertList`, `assertOne`) scoped to their namespace or cluster context. `Cluster` additionally supports `newNamespace`.
 
 `Namespace` also exposes a `name` property:
 
