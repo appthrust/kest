@@ -113,17 +113,14 @@ await ns.assert({
 Custom timeouts are supported per action:
 
 ```ts
-await ns.assert(
-  {
-    apiVersion: "apps/v1",
-    kind: "Deployment",
-    name: "my-app",
-    test() {
-      expect(this.status?.availableReplicas).toBe(3);
-    },
+await ns.assert({
+  apiVersion: "apps/v1",
+  kind: "Deployment",
+  name: "my-app",
+  test() {
+    expect(this.status?.availableReplicas).toBe(3);
   },
-  { timeout: "30s", interval: "1s" },
-);
+});
 ```
 
 ### Create Resources
@@ -245,17 +242,14 @@ Use the optional `where` predicate to narrow candidates when multiple resources 
 
 ```ts
 // Find the one ConfigMap whose name starts with "generated-"
-await ns.assertOne<ConfigMap>(
-  {
-    apiVersion: "v1",
-    kind: "ConfigMap",
-    where: (cm) => cm.metadata.name.startsWith("generated-"),
-    test() {
-      expect(this.data?.mode).toBe("auto");
-    },
+await ns.assertOne<ConfigMap>({
+  apiVersion: "v1",
+  kind: "ConfigMap",
+  where: (cm) => cm.metadata.name.startsWith("generated-"),
+  test() {
+    expect(this.data?.mode).toBe("auto");
   },
-  { timeout: "30s", interval: "1s" },
-);
+});
 ```
 
 `assertOne` throws if zero or more than one resource matches, and retries until exactly one is found or the timeout expires.
@@ -270,19 +264,6 @@ await ns.assertAbsence({
   kind: "ConfigMap",
   name: "deleted-config",
 });
-```
-
-With retry-based polling to wait for a resource to disappear:
-
-```ts
-await ns.assertAbsence(
-  {
-    apiVersion: "apps/v1",
-    kind: "Deployment",
-    name: "my-app",
-  },
-  { timeout: "30s", interval: "1s" },
-);
 ```
 
 ### Error Assertions
@@ -306,20 +287,17 @@ await ns.assertApplyError({
 The `test` callback participates in retry -- if it throws, the action is retried until the callback passes or the timeout expires. This is useful when a webhook is being set up asynchronously:
 
 ```ts
-await ns.assertApplyError(
-  {
-    apply: {
-      apiVersion: "example.com/v1",
-      kind: "MyResource",
-      metadata: { name: "my-resource" },
-      spec: { immutableField: "changed" },
-    },
-    test(error) {
-      expect(error.message).toContain("field is immutable");
-    },
+await ns.assertApplyError({
+  apply: {
+    apiVersion: "example.com/v1",
+    kind: "MyResource",
+    metadata: { name: "my-resource" },
+    spec: { immutableField: "changed" },
   },
-  { timeout: "30s", interval: "1s" },
-);
+  test(error) {
+    expect(error.message).toContain("field is immutable");
+  },
+});
 ```
 
 `assertCreateError` works identically for `kubectl create`:
