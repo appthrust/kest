@@ -78,6 +78,13 @@ const ns = await s.newNamespace({ generateName: "foo-" });
 // Namespace name will be like "foo-d7kpn"
 ```
 
+The returned object has a `name` property that holds the generated namespace name:
+
+```ts
+const ns = await s.newNamespace({ generateName: "foo-" });
+console.log(ns.name); //=> "foo-d7kpn"
+```
+
 ### Automatic Cleanup (Reverse-Order, Blocking)
 
 Resources are deleted in the reverse order they were created (LIFO). Kest waits until each resource is fully removed before proceeding, preventing flaky failures caused by lingering resources or `Terminating` namespaces.
@@ -449,6 +456,12 @@ The top-level API surface available in every test callback.
 
 Returned by `newNamespace()` and `useCluster()` respectively. They expose the same core methods (`apply`, `create`, `applyStatus`, `delete`, `label`, `get`, `assert`, `assertAbsence`, `assertList`) scoped to their namespace or cluster context. `Cluster` additionally supports `newNamespace`.
 
+`Namespace` also exposes a `name` property:
+
+| Property | Type     | Description                                              |
+| -------- | -------- | -------------------------------------------------------- |
+| `name`   | `string` | The generated namespace name (e.g. `"kest-abc12"`) |
+
 ### Action Options
 
 All actions accept an optional options object for retry configuration.
@@ -747,6 +760,32 @@ Kest offers a few ways to avoid these collisions:
 - Use `s.generateName("prefix-")` to generate a random-suffix name when you need additional names outside of `newNamespace` (e.g. cluster-scoped resources).
 
 `s.newNamespace(...)` actually creates the `Namespace` via `kubectl create` and retries on name collisions (regenerating a new name each attempt), so once it succeeds the namespace name is unique in the cluster. `s.generateName(...)` is a pure string helper and provides **statistical uniqueness** only (collisions are extremely unlikely, but not impossible).
+
+**Using `newNamespace` with `.name` (recommended for namespaces):**
+
+Every `Namespace` object returned by `newNamespace` has a `.name` property. When resources in one namespace need to reference another namespace by name -- for example in cross-namespace `spec.*Ref.namespace` fields -- use `.name`:
+
+```ts
+const nsA = await s.newNamespace({ generateName: "infra-" });
+const nsB = await s.newNamespace({ generateName: "app-" });
+
+s.when("I apply a resource in nsB that references nsA");
+await nsB.apply({
+  apiVersion: "example.com/v1",
+  kind: "AppConfig",
+  metadata: { name: "my-app" },
+  spec: {
+    secretStoreRef: {
+      namespace: nsA.name, // e.g. "infra-k7rtn"
+      name: "vault",
+    },
+  },
+});
+```
+
+**Using `s.generateName` (for cluster-scoped resources):**
+
+For cluster-scoped resources (where `newNamespace` is not applicable), use `s.generateName`:
 
 ```ts
 s.given("a cluster-scoped resource name should not collide with other tests");
