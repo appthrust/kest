@@ -1,6 +1,6 @@
+import { generateName } from "../naming";
 import { create } from "./create";
 import type { MutateDef } from "./types";
-import { generateName } from "../naming";
 
 /**
  * Input for namespace creation.

@@ -165,7 +165,7 @@ export function renderReport(
       if (!status) {
         if (action.error) {
           status = "failure";
-        } else if (action.command) {
+        } else if (action.commands.length > 0) {
           status = "success";
         } else {
           status = "pending";
@@ -180,8 +180,7 @@ export function renderReport(
       lines.push(`**${emoji} ${stripAnsi(action.name)}**${attemptsSuffix}`);
       lines.push("");
 
-      const cmd = action.command;
-      if (cmd) {
+      for (const cmd of action.commands) {
         const base = [cmd.cmd, ...cmd.args].join(" ").trim();
         const stdin = cmd.stdin?.text;
         const stdinLanguage = cmd.stdin?.language ?? "text";

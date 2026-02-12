@@ -47,19 +47,21 @@ export const report = {
           actions: [
             {
               name: "Apply Namespace `kest-abc12`",
-              command: {
-                cmd: "kubectl",
-                args: ["apply", "-f", "-"],
-                stdin: {
-                  text: "apiVersion: v1\nkind: Namespace\nmetadata: \n  name: kest-abc12",
-                  language: "yaml",
+              commands: [
+                {
+                  cmd: "kubectl",
+                  args: ["apply", "-f", "-"],
+                  stdin: {
+                    text: "apiVersion: v1\nkind: Namespace\nmetadata: \n  name: kest-abc12",
+                    language: "yaml",
+                  },
+                  stdout: {
+                    text: "namespace/kest-abc12 created\n",
+                    language: "text",
+                  },
+                  stderr: { text: "", language: "text" },
                 },
-                stdout: {
-                  text: "namespace/kest-abc12 created\n",
-                  language: "text",
-                },
-                stderr: { text: "", language: "text" },
-              },
+              ],
             },
           ],
         },

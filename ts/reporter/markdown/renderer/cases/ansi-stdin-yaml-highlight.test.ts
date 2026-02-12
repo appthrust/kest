@@ -17,27 +17,29 @@ const report = {
           actions: [
             {
               name: 'Apply `ConfigMap` "my-config-1"',
-              command: {
-                cmd: "kubectl",
-                args: ["apply", "-f", "-"],
-                stdin: {
-                  text: [
-                    "apiVersion: v1",
-                    "kind: ConfigMap",
-                    "metadata: ",
-                    "  name: my-config-1",
-                    "  namespace: kest-abc12",
-                    "data: ",
-                    "  mode: demo-1",
-                  ].join("\n"),
-                  language: "yaml",
+              commands: [
+                {
+                  cmd: "kubectl",
+                  args: ["apply", "-f", "-"],
+                  stdin: {
+                    text: [
+                      "apiVersion: v1",
+                      "kind: ConfigMap",
+                      "metadata: ",
+                      "  name: my-config-1",
+                      "  namespace: kest-abc12",
+                      "data: ",
+                      "  mode: demo-1",
+                    ].join("\n"),
+                    language: "yaml",
+                  },
+                  stdout: {
+                    text: "configmap/my-config-1 created\n",
+                    language: "text",
+                  },
+                  stderr: { text: "", language: "text" },
                 },
-                stdout: {
-                  text: "configmap/my-config-1 created\n",
-                  language: "text",
-                },
-                stderr: { text: "", language: "text" },
-              },
+              ],
             },
           ],
         },

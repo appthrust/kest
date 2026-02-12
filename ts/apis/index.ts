@@ -88,6 +88,75 @@ export interface Scenario {
   ): Promise<void>;
 
   /**
+   * Asserts that `kubectl apply` produces an error.
+   *
+   * The manifest is applied, and the action succeeds when the API server
+   * returns an error (e.g. an admission webhook rejects the request). The
+   * `test` callback must also pass for the action to succeed.
+   *
+   * If the apply unexpectedly succeeds, the created resource is immediately
+   * reverted and the action is retried until the expected error occurs or the
+   * timeout expires.
+   *
+   * @template T - The expected Kubernetes resource shape.
+   * @param input - Manifest to apply and error assertion callback.
+   * @param options - Retry options such as timeout and polling interval.
+   *
+   * @example
+   * ```ts
+   * await s.assertApplyError({
+   *   apply: {
+   *     apiVersion: "example.com/v1",
+   *     kind: "MyResource",
+   *     metadata: { name: "my-resource" },
+   *     spec: { immutableField: "changed" },
+   *   },
+   *   test() {
+   *     expect(this.message).toContain("field is immutable");
+   *   },
+   * });
+   * ```
+   */
+  assertApplyError<T extends K8sResource>(
+    input: AssertApplyErrorInput<T>,
+    options?: undefined | ActionOptions
+  ): Promise<void>;
+
+  /**
+   * Asserts that `kubectl create` produces an error.
+   *
+   * The manifest is created, and the action succeeds when the API server
+   * returns an error. The `test` callback must also pass for the action to
+   * succeed.
+   *
+   * If the create unexpectedly succeeds, the created resource is immediately
+   * reverted and the action is retried until the expected error occurs or the
+   * timeout expires.
+   *
+   * @template T - The expected Kubernetes resource shape.
+   * @param input - Manifest to create and error assertion callback.
+   * @param options - Retry options such as timeout and polling interval.
+   *
+   * @example
+   * ```ts
+   * await s.assertCreateError({
+   *   create: {
+   *     apiVersion: "v1",
+   *     kind: "ConfigMap",
+   *     metadata: { name: "already-exists" },
+   *   },
+   *   test(error) {
+   *     expect(error.message).toContain("already exists");
+   *   },
+   * });
+   * ```
+   */
+  assertCreateError<T extends K8sResource>(
+    input: AssertCreateErrorInput<T>,
+    options?: undefined | ActionOptions
+  ): Promise<void>;
+
+  /**
    * Applies the `status` subresource using server-side apply.
    *
    * Internally, this uses:
@@ -574,6 +643,30 @@ export interface Cluster {
   ): Promise<void>;
 
   /**
+   * Asserts that `kubectl apply` produces an error.
+   *
+   * @template T - The expected Kubernetes resource shape.
+   * @param input - Manifest to apply and error assertion callback.
+   * @param options - Retry options such as timeout and polling interval.
+   */
+  assertApplyError<T extends K8sResource>(
+    input: AssertApplyErrorInput<T>,
+    options?: undefined | ActionOptions
+  ): Promise<void>;
+
+  /**
+   * Asserts that `kubectl create` produces an error.
+   *
+   * @template T - The expected Kubernetes resource shape.
+   * @param input - Manifest to create and error assertion callback.
+   * @param options - Retry options such as timeout and polling interval.
+   */
+  assertCreateError<T extends K8sResource>(
+    input: AssertCreateErrorInput<T>,
+    options?: undefined | ActionOptions
+  ): Promise<void>;
+
+  /**
    * Applies the `status` subresource using server-side apply.
    *
    * @template T - The expected Kubernetes resource shape.
@@ -868,6 +961,30 @@ export interface Namespace {
    */
   create<T extends K8sResource>(
     manifest: ApplyingManifest<T>,
+    options?: undefined | ActionOptions
+  ): Promise<void>;
+
+  /**
+   * Asserts that `kubectl apply` produces an error in this namespace.
+   *
+   * @template T - The expected Kubernetes resource shape.
+   * @param input - Manifest to apply and error assertion callback.
+   * @param options - Retry options such as timeout and polling interval.
+   */
+  assertApplyError<T extends K8sResource>(
+    input: AssertApplyErrorInput<T>,
+    options?: undefined | ActionOptions
+  ): Promise<void>;
+
+  /**
+   * Asserts that `kubectl create` produces an error in this namespace.
+   *
+   * @template T - The expected Kubernetes resource shape.
+   * @param input - Manifest to create and error assertion callback.
+   * @param options - Retry options such as timeout and polling interval.
+   */
+  assertCreateError<T extends K8sResource>(
+    input: AssertCreateErrorInput<T>,
     options?: undefined | ActionOptions
   ): Promise<void>;
 
@@ -1277,6 +1394,56 @@ export interface ResourceOneTest<T extends K8sResource = K8sResource> {
    * Throwing (or rejecting) signals a failed assertion.
    */
   readonly test: (this: T, resource: T) => unknown | Promise<unknown>;
+}
+
+/**
+ * A test definition for {@link Scenario.assertApplyError},
+ * {@link Cluster.assertApplyError}, and {@link Namespace.assertApplyError}.
+ *
+ * Attempts `kubectl apply` and asserts that the API server returns an error.
+ * When the operation errors as expected, the `test` callback is invoked with
+ * `this` bound to the {@link Error}.
+ */
+export interface AssertApplyErrorInput<T extends K8sResource = K8sResource> {
+  /**
+   * The manifest to apply. Accepts the same formats as {@link Scenario.apply}:
+   * an object literal, a YAML string, or an imported YAML module.
+   */
+  readonly apply: ApplyingManifest<T>;
+
+  /**
+   * Assertion callback invoked when the apply errors as expected.
+   *
+   * `this` is bound to the {@link Error} returned by the API server.
+   * Throwing (or rejecting) signals that the error did not match expectations
+   * and triggers a retry (if timeout allows).
+   */
+  readonly test: (this: Error, error: Error) => unknown | Promise<unknown>;
+}
+
+/**
+ * A test definition for {@link Scenario.assertCreateError},
+ * {@link Cluster.assertCreateError}, and {@link Namespace.assertCreateError}.
+ *
+ * Attempts `kubectl create` and asserts that the API server returns an error.
+ * When the operation errors as expected, the `test` callback is invoked with
+ * `this` bound to the {@link Error}.
+ */
+export interface AssertCreateErrorInput<T extends K8sResource = K8sResource> {
+  /**
+   * The manifest to create. Accepts the same formats as {@link Scenario.create}:
+   * an object literal, a YAML string, or an imported YAML module.
+   */
+  readonly create: ApplyingManifest<T>;
+
+  /**
+   * Assertion callback invoked when the create errors as expected.
+   *
+   * `this` is bound to the {@link Error} returned by the API server.
+   * Throwing (or rejecting) signals that the error did not match expectations
+   * and triggers a retry (if timeout allows).
+   */
+  readonly test: (this: Error, error: Error) => unknown | Promise<unknown>;
 }
 
 /**

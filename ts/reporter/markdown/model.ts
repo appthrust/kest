@@ -27,7 +27,7 @@ export interface BDDSection {
 export interface Action {
   name: string;
   attempts?: undefined | number;
-  command?: undefined | Command;
+  commands: Array<Command>;
   error?: undefined | Error;
 }
 

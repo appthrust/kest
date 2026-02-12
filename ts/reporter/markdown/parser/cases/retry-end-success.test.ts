@@ -21,7 +21,9 @@ export const report = {
           type: "BDDSection",
           keyword: "then",
           description: "wait for readiness",
-          actions: [{ name: "Assert `Pod` is Ready", attempts: 5 }],
+          actions: [
+            { name: "Assert `Pod` is Ready", attempts: 5, commands: [] },
+          ],
         },
       ],
       cleanup: [],

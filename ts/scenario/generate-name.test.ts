@@ -62,4 +62,3 @@ test("Scenario.generateName returns prefixed random name", () => {
   const name = scenario.generateName("foo-");
   expect(name).toMatch(/^foo-[bcdfghjklmnpqrstvwxyz0-9]{5}$/);
 });
-

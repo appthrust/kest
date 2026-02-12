@@ -8,7 +8,8 @@ const consonantDigits = "bcdfghjklmnpqrstvwxyz0123456789";
 export function randomConsonantDigits(length = 8): string {
   let result = "";
   for (let i = 0; i < length; i++) {
-    result += consonantDigits[Math.floor(Math.random() * consonantDigits.length)];
+    result +=
+      consonantDigits[Math.floor(Math.random() * consonantDigits.length)];
   }
   return result;
 }
@@ -24,4 +25,3 @@ export function randomConsonantDigits(length = 8): string {
 export function generateName(prefix: string, suffixLength = 5): string {
   return `${prefix}${randomConsonantDigits(suffixLength)}`;
 }
-

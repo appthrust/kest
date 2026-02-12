@@ -21,7 +21,7 @@ export const report = {
           type: "BDDSection",
           keyword: "given",
           description: "create Namespace",
-          actions: [{ name: "Apply Namespace `kest-abc12`" }],
+          actions: [{ name: "Apply Namespace `kest-abc12`", commands: [] }],
         },
       ],
       cleanup: [],

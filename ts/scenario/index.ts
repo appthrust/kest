@@ -2,6 +2,8 @@ import { apply } from "../actions/apply";
 import { applyStatus } from "../actions/apply-status";
 import { assert } from "../actions/assert";
 import { assertAbsence } from "../actions/assert-absence";
+import { assertApplyError } from "../actions/assert-apply-error";
+import { assertCreateError } from "../actions/assert-create-error";
 import { assertList } from "../actions/assert-list";
 import { assertOne } from "../actions/assert-one";
 import { create } from "../actions/create";
@@ -39,6 +41,8 @@ export function createScenario(deps: CreateScenarioOptions): InternalScenario {
   return {
     apply: createMutateFn(deps, apply),
     create: createMutateFn(deps, create),
+    assertApplyError: createMutateFn(deps, assertApplyError),
+    assertCreateError: createMutateFn(deps, assertCreateError),
     applyStatus: createOneWayMutateFn(deps, applyStatus),
     delete: createOneWayMutateFn(deps, deleteResource),
     label: createOneWayMutateFn(deps, label),
@@ -205,6 +209,8 @@ const createNewNamespaceFn =
       name: namespaceName,
       apply: createMutateFn(namespacedDeps, apply),
       create: createMutateFn(namespacedDeps, create),
+      assertApplyError: createMutateFn(namespacedDeps, assertApplyError),
+      assertCreateError: createMutateFn(namespacedDeps, assertCreateError),
       applyStatus: createOneWayMutateFn(namespacedDeps, applyStatus),
       delete: createOneWayMutateFn(namespacedDeps, deleteResource),
       label: createOneWayMutateFn(namespacedDeps, label),
@@ -229,6 +235,8 @@ const createUseClusterFn =
     return {
       apply: createMutateFn(clusterDeps, apply),
       create: createMutateFn(clusterDeps, create),
+      assertApplyError: createMutateFn(clusterDeps, assertApplyError),
+      assertCreateError: createMutateFn(clusterDeps, assertCreateError),
       applyStatus: createOneWayMutateFn(clusterDeps, applyStatus),
       delete: createOneWayMutateFn(clusterDeps, deleteResource),
       label: createOneWayMutateFn(clusterDeps, label),

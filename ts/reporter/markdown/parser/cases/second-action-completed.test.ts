@@ -79,19 +79,21 @@ export const report = {
           actions: [
             {
               name: "Apply Namespace `kest-abc12`",
-              command: {
-                cmd: "kubectl",
-                args: ["apply", "-f", "-"],
-                stdin: {
-                  text: "apiVersion: v1\nkind: Namespace\nmetadata: \n  name: kest-abc12",
-                  language: "yaml",
+              commands: [
+                {
+                  cmd: "kubectl",
+                  args: ["apply", "-f", "-"],
+                  stdin: {
+                    text: "apiVersion: v1\nkind: Namespace\nmetadata: \n  name: kest-abc12",
+                    language: "yaml",
+                  },
+                  stdout: {
+                    text: "namespace/kest-abc12 created\n",
+                    language: "text",
+                  },
+                  stderr: { text: "", language: "text" },
                 },
-                stdout: {
-                  text: "namespace/kest-abc12 created\n",
-                  language: "text",
-                },
-                stderr: { text: "", language: "text" },
-              },
+              ],
             },
           ],
         },
@@ -102,19 +104,21 @@ export const report = {
           actions: [
             {
               name: 'Apply `ConfigMap` "my-config-1"',
-              command: {
-                cmd: "kubectl",
-                args: ["apply", "-f", "-"],
-                stdin: {
-                  text: "apiVersion: v1\nkind: ConfigMap\nmetadata: \n  name: my-config-1\n  namespace: kest-abc12\ndata: \n  mode: demo-1",
-                  language: "yaml",
+              commands: [
+                {
+                  cmd: "kubectl",
+                  args: ["apply", "-f", "-"],
+                  stdin: {
+                    text: "apiVersion: v1\nkind: ConfigMap\nmetadata: \n  name: my-config-1\n  namespace: kest-abc12\ndata: \n  mode: demo-1",
+                    language: "yaml",
+                  },
+                  stdout: {
+                    text: "configmap/my-config-1 created\n",
+                    language: "text",
+                  },
+                  stderr: { text: "", language: "text" },
                 },
-                stdout: {
-                  text: "configmap/my-config-1 created\n",
-                  language: "text",
-                },
-                stderr: { text: "", language: "text" },
-              },
+              ],
             },
           ],
         },

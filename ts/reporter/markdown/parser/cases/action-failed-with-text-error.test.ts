@@ -17,6 +17,7 @@ export const report = {
         {
           type: "Action",
           name: "Check health",
+          commands: [],
           error: { message: { text: "boom", language: "text" } },
         },
       ],

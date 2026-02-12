@@ -15,29 +15,31 @@ const report = {
           actions: [
             {
               name: "Get ConfigMap",
-              command: {
-                cmd: "kubectl",
-                args: [
-                  "get",
-                  "ConfigMap/my-config-1",
-                  "-n",
-                  "kest-abc12",
-                  "-o",
-                  "yaml",
-                ],
-                stdout: {
-                  text: [
-                    "apiVersion: v1",
-                    "kind: ConfigMap",
-                    "metadata:",
-                    "  name: my-config-1",
-                    "  namespace: kest-abc12",
-                    "",
-                  ].join("\n"),
-                  language: "yaml",
+              commands: [
+                {
+                  cmd: "kubectl",
+                  args: [
+                    "get",
+                    "ConfigMap/my-config-1",
+                    "-n",
+                    "kest-abc12",
+                    "-o",
+                    "yaml",
+                  ],
+                  stdout: {
+                    text: [
+                      "apiVersion: v1",
+                      "kind: ConfigMap",
+                      "metadata:",
+                      "  name: my-config-1",
+                      "  namespace: kest-abc12",
+                      "",
+                    ].join("\n"),
+                    language: "yaml",
+                  },
+                  stderr: { text: "", language: "text" },
                 },
-                stderr: { text: "", language: "text" },
-              },
+              ],
             },
           ],
         },

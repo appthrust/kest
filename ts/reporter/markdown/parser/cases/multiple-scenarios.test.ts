@@ -63,7 +63,7 @@ export const report = {
           type: "BDDSection",
           keyword: "given",
           description: "setup",
-          actions: [{ name: "Do A" }],
+          actions: [{ name: "Do A", commands: [] }],
         },
       ],
       cleanup: [
@@ -86,15 +86,17 @@ export const report = {
           type: "Action",
           name: "Do B",
           attempts: 2,
-          command: {
-            cmd: "kubectl",
-            args: ["get", "namespace/default", "-o", "yaml"],
-            stdout: {
-              text: "apiVersion: v1\nkind: Namespace\nmetadata:\n  name: default\n",
-              language: "yaml",
+          commands: [
+            {
+              cmd: "kubectl",
+              args: ["get", "namespace/default", "-o", "yaml"],
+              stdout: {
+                text: "apiVersion: v1\nkind: Namespace\nmetadata:\n  name: default\n",
+                language: "yaml",
+              },
+              stderr: { text: "", language: "text" },
             },
-            stderr: { text: "", language: "text" },
-          },
+          ],
         },
       ],
       cleanup: [],

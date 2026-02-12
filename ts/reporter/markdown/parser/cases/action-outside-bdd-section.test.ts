@@ -34,12 +34,14 @@ export const report = {
         {
           type: "Action",
           name: "Get Pods",
-          command: {
-            cmd: "kubectl",
-            args: ["get", "pods", "-n", "default", "-o", "yaml"],
-            stdout: { text: "kind: List\n", language: "yaml" },
-            stderr: { text: "", language: "text" },
-          },
+          commands: [
+            {
+              cmd: "kubectl",
+              args: ["get", "pods", "-n", "default", "-o", "yaml"],
+              stdout: { text: "kind: List\n", language: "yaml" },
+              stderr: { text: "", language: "text" },
+            },
+          ],
         },
       ],
       cleanup: [],

@@ -1,0 +1,47 @@
+# hello world
+
+## Scenario Overview
+
+| # | Action | Status |
+|---|--------|--------|
+| 1 | Apply `ClusterDeployment` "my-cd" (expected error) | ✅ |
+
+## Scenario Details
+
+### Then: the update should be rejected
+
+**✅ Apply `ClusterDeployment` "my-cd" (expected error)**
+
+```shell
+kubectl apply -f - <<EOF
+apiVersion: cluster.example.com/v1
+kind: ClusterDeployment
+metadata:
+  name: my-cd
+EOF
+```
+
+```text title="stdout"
+clusterdeployment.cluster.example.com/my-cd configured
+```
+
+```shell
+kubectl delete ClusterDeployment/my-cd --ignore-not-found
+```
+
+```text title="stdout"
+clusterdeployment.cluster.example.com "my-cd" deleted
+```
+
+```shell
+kubectl apply -f - <<EOF
+apiVersion: cluster.example.com/v1
+kind: ClusterDeployment
+metadata:
+  name: my-cd
+EOF
+```
+
+```text title="stderr"
+admission webhook "validate.cluster.example.com" denied the request: field is immutable
+```

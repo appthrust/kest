@@ -11,6 +11,7 @@ const report = {
         {
           type: "Action",
           name: "Check health",
+          commands: [],
           error: {
             message: {
               text: "\u001b[31mboom\u001b[0m",

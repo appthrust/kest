@@ -114,7 +114,7 @@ function handleActionStart(
     return;
   }
 
-  const action: Action = { name: event.data.description };
+  const action: Action = { name: event.data.description, commands: [] };
   scenario.overview.push({
     name: event.data.description,
     status: "pending",
@@ -180,17 +180,21 @@ function handleCommandResult(
   }
 
   const { currentAction } = state;
-  if (!currentAction?.command) {
+  if (!currentAction || currentAction.commands.length === 0) {
     return;
   }
 
-  currentAction.command.stdout = {
+  const command = currentAction.commands.at(-1);
+  if (!command) {
+    return;
+  }
+  command.stdout = {
     text: event.data.stdout,
     ...(event.data.stdoutLanguage
       ? { language: event.data.stdoutLanguage }
       : {}),
   };
-  currentAction.command.stderr = {
+  command.stderr = {
     text: event.data.stderr,
     ...(event.data.stderrLanguage
       ? { language: event.data.stderrLanguage }
@@ -216,7 +220,7 @@ function handleCommandRun(
   if (!state.currentAction) {
     return;
   }
-  state.currentAction.command = createCommandFromRun(event);
+  state.currentAction.commands.push(createCommandFromRun(event));
 }
 
 function handleScenarioStart(
