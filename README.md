@@ -458,8 +458,8 @@ Returned by `newNamespace()` and `useCluster()` respectively. They expose the sa
 
 `Namespace` also exposes a `name` property:
 
-| Property | Type     | Description                                              |
-| -------- | -------- | -------------------------------------------------------- |
+| Property | Type     | Description                                        |
+| -------- | -------- | -------------------------------------------------- |
 | `name`   | `string` | The generated namespace name (e.g. `"kest-abc12"`) |
 
 ### Action Options
@@ -630,11 +630,11 @@ Starting with one file per scenario reserves room to grow. Each file has built-i
 
 **Name files after the behavior they verify.** A reader should know what a test checks without opening the file:
 
-| ✅ Good | ❌ Bad |
-| --- | --- |
-| `creates-namespaces-with-labels.test.ts` | `tenant-test-1.test.ts` |
-| `rejects-reserved-selector-labels.test.ts` | `validation.test.ts` |
-| `rolls-out-when-image-changes.test.ts` | `deployment-tests.test.ts` |
+| ✅ Good                                    | ❌ Bad                     |
+| ------------------------------------------ | -------------------------- |
+| `creates-namespaces-with-labels.test.ts`   | `tenant-test-1.test.ts`    |
+| `rejects-reserved-selector-labels.test.ts` | `validation.test.ts`       |
+| `rolls-out-when-image-changes.test.ts`     | `deployment-tests.test.ts` |
 
 **Exceptions.** Tiny negative-case variations of the same API -- where each case is only a few lines and they are always read together (e.g. boundary-condition lists) -- may share a file. When you do this, leave a comment explaining why, because the exception easily becomes the norm.
 
@@ -727,41 +727,90 @@ await ns.apply(import("./fixtures/deployment-v2.yaml"));
 await ns.apply(import("./fixtures/deployment-v1.ts"));
 ```
 
-If you do use helpers, limit them to **name generation** -- never to assembling `spec`:
-
-```ts
-// ✅ Good — helper generates a name; the manifest stays in the test
-const name = s.generateName("deploy-");
-await ns.apply({
-  apiVersion: "apps/v1",
-  kind: "Deployment",
-  metadata: { name },
-  spec: {
-    /* full spec here, not hidden in a function */
-  },
-});
-```
-
 **Manifest-visibility checklist:**
 
 - [ ] Can you understand the full input by reading just the test file?
 - [ ] Is the diff between test steps visible as a spec-level change?
 - [ ] Can you reconstruct the applied manifest from the failure report alone?
-- [ ] Are helper functions limited to name generation (no `spec` assembly)?
 
 ### Avoiding naming collisions between tests
 
-When tests run in parallel, hard-coded resource names can collide (especially when you create cluster-scoped resources).
+When tests run in parallel, hard-coded resource names can collide. In most cases, `newNamespace()` is all you need -- each test gets its own namespace, so names like `"my-config"` or `"my-app"` are already isolated:
 
-Kest offers a few ways to avoid these collisions:
+```ts
+const ns = await s.newNamespace();
 
-- Use `s.newNamespace()` to isolate namespaced resources per test (recommended default).
-- Use `s.newNamespace({ generateName: "prefix-" })` to keep isolation while making the namespace name easier to recognize in logs/reports.
-- Use `s.generateName("prefix-")` to generate a random-suffix name when you need additional names outside of `newNamespace` (e.g. cluster-scoped resources).
+await ns.apply({
+  apiVersion: "v1",
+  kind: "ConfigMap",
+  metadata: { name: "app-config" }, // safe — no other test shares this namespace
+  data: { mode: "test" },
+});
+```
 
-`s.newNamespace(...)` actually creates the `Namespace` via `kubectl create` and retries on name collisions (regenerating a new name each attempt), so once it succeeds the namespace name is unique in the cluster. `s.generateName(...)` is a pure string helper and provides **statistical uniqueness** only (collisions are extremely unlikely, but not impossible).
+Because the namespace itself is unique, the resource names inside it don't need to be randomized. **You only need `s.generateName` when `newNamespace` alone is not enough.**
 
-**Using `newNamespace` with `.name` (recommended for namespaces):**
+A common mistake is to reach for `s.generateName` on _every_ resource "just to be safe." This adds no real protection when the resources are already in an isolated namespace, and it makes tests harder to read and debug:
+
+```ts
+// ❌ Bad — generateName on namespaced resources inside an isolated namespace.
+//    The random suffixes add noise without preventing any actual collisions.
+const ns = await s.newNamespace();
+
+const configName = s.generateName("cfg-");
+const deployName = s.generateName("deploy-");
+
+await ns.apply({
+  apiVersion: "v1",
+  kind: "ConfigMap",
+  metadata: { name: configName }, // "cfg-x7k2m" — hard to find in logs
+  data: { mode: "test" },
+});
+await ns.apply({
+  apiVersion: "apps/v1",
+  kind: "Deployment",
+  metadata: { name: deployName }, // "deploy-p3n8r" — what was this test about?
+  // ...
+});
+```
+
+```ts
+// ✅ Good — fixed, descriptive names inside an isolated namespace.
+//    The namespace already guarantees no collisions. Fixed names are
+//    easy to read, easy to grep in logs, and match the failure report.
+const ns = await s.newNamespace();
+
+await ns.apply({
+  apiVersion: "v1",
+  kind: "ConfigMap",
+  metadata: { name: "app-config" },
+  data: { mode: "test" },
+});
+await ns.apply({
+  apiVersion: "apps/v1",
+  kind: "Deployment",
+  metadata: { name: "my-app" },
+  // ...
+});
+```
+
+**When to use `s.generateName`:**
+
+| Situation                                              | Approach                                  |
+| ------------------------------------------------------ | ----------------------------------------- |
+| Namespaced resource inside `newNamespace()`            | Use a fixed name (default)                |
+| Same-kind resources created multiple times in one test | `s.generateName` or numbered fixed names  |
+| Cluster-scoped resource (e.g. `ClusterRole`, `CRD`)    | `s.generateName` (no namespace isolation) |
+| Fixed name causes unintended upsert / side effects     | `s.generateName`                          |
+
+Choose **necessary and sufficient** over "safe side" -- every random suffix is a readability trade-off.
+
+**How the two helpers work:**
+
+- `newNamespace(...)` creates a `Namespace` via `kubectl create` and retries on name collisions (regenerating a new name each attempt), so once it succeeds the namespace name is guaranteed unique in the cluster.
+- `s.generateName(...)` is a pure string helper that provides **statistical uniqueness** only (collisions are extremely unlikely, but not impossible).
+
+**Using `newNamespace` with `.name` (cross-namespace references):**
 
 Every `Namespace` object returned by `newNamespace` has a `.name` property. When resources in one namespace need to reference another namespace by name -- for example in cross-namespace `spec.*Ref.namespace` fields -- use `.name`:
 
@@ -804,6 +853,12 @@ await s.create({
   ],
 });
 ```
+
+**Naming-collision checklist:**
+
+- [ ] Are namespaced resources inside `newNamespace` using fixed names (not `generateName`)?
+- [ ] Is `generateName` reserved for cluster-scoped resources or multi-instance cases?
+- [ ] Can you identify every resource in the failure report without decoding random suffixes?
 
 ## Type Safety
 
