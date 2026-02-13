@@ -29,32 +29,6 @@ const report = {
                     text: "apiVersion: cluster.example.com/v1\nkind: ClusterDeployment\nmetadata:\n  name: my-cd",
                     language: "yaml",
                   },
-                  stdout: {
-                    text: "clusterdeployment.cluster.example.com/my-cd configured\n",
-                    language: "text",
-                  },
-                  stderr: { text: "", language: "text" },
-                },
-                {
-                  cmd: "kubectl",
-                  args: [
-                    "delete",
-                    "ClusterDeployment/my-cd",
-                    "--ignore-not-found",
-                  ],
-                  stdout: {
-                    text: 'clusterdeployment.cluster.example.com "my-cd" deleted\n',
-                    language: "text",
-                  },
-                  stderr: { text: "", language: "text" },
-                },
-                {
-                  cmd: "kubectl",
-                  args: ["apply", "-f", "-"],
-                  stdin: {
-                    text: "apiVersion: cluster.example.com/v1\nkind: ClusterDeployment\nmetadata:\n  name: my-cd",
-                    language: "yaml",
-                  },
                   stdout: { text: "", language: "text" },
                   stderr: {
                     text: 'admission webhook "validate.cluster.example.com" denied the request: field is immutable\n',

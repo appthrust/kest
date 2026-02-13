@@ -22,6 +22,8 @@ const cases: Array<ParserTestCase> = [
   await import("./cases/assert-failed-after-retry-timeout.test"),
   await import("./cases/revertings-completed.test"),
   await import("./cases/multiple-commands-in-action.test"),
+  await import("./cases/retry-collapses-to-last-attempt.test"),
+  await import("./cases/retry-collapses-multi-command-attempts.test"),
   await import("./cases/no-events.test"),
 ];
 

@@ -53,6 +53,7 @@ type CommandEvent =
 
 type RetryEvent =
   | BaseEvent<"RetryStart", Record<string, never>>
+  | BaseEvent<"RetryAttempt", { readonly attempt: number }>
   | BaseEvent<
       "RetryEnd",
       | {

@@ -77,6 +77,7 @@ export async function retryUntil<T>(
     }
 
     retries += 1;
+    recorder?.record("RetryAttempt", { attempt: retries });
 
     try {
       const value = await fn();

@@ -89,6 +89,9 @@ function handleNonBDDEvent(state: ParseState, event: Event): void {
     case "RetryEnd":
       handleRetryEnd(state, event);
       return;
+    case "RetryAttempt":
+      handleRetryAttempt(state);
+      return;
     case "RetryStart":
       return;
     default:
@@ -261,6 +264,16 @@ function handleCleanupActionEnd(
   }
   state.currentCleanup = undefined;
   return true;
+}
+
+function handleRetryAttempt(state: ParseState): void {
+  if (state.inCleanup) {
+    return;
+  }
+  if (!state.currentAction) {
+    return;
+  }
+  state.currentAction.commands = [];
 }
 
 function handleRetryEnd(
