@@ -7,6 +7,7 @@ import type {
   Report,
   Scenario,
 } from "../model";
+import { stripAnsi } from "../strip-ansi";
 
 const bddKeywordByKind = {
   BDDGiven: "given",
@@ -161,7 +162,9 @@ function applyRegularActionEnd(
     currentAction.error = {
       message: {
         text: event.data.error.message,
-        language: isDiffLike(event.data.error.message) ? "diff" : "text",
+        language: isDiffLike(stripAnsi(event.data.error.message))
+          ? "diff"
+          : "text",
       },
     };
   }
@@ -355,7 +358,7 @@ function bddFromEvent(event: Event): BDDSection | undefined {
   return { keyword, description: event.data.description, actions: [] };
 }
 
-function isDiffLike(message: string): boolean {
+export function isDiffLike(message: string): boolean {
   const lines = message.split(/\r?\n/);
   let sawPlus = false;
   let sawMinus = false;

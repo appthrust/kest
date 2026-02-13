@@ -60,6 +60,34 @@ test("Example: applies ConfigMap using YAML, file import, and object literal", a
   // 4. Namespace
 });
 
+test("Example: diff demo - ConfigMap data mismatch (expected to fail)", async (s) => {
+  s.given("a new namespace exists");
+  const ns = await s.newNamespace();
+
+  s.when("I apply a ConfigMap with actual data");
+  await ns.apply<ConfigMap>({
+    apiVersion: "v1",
+    kind: "ConfigMap",
+    metadata: { name: "diff-demo" },
+    data: { mode: "actual-value", env: "production" },
+  });
+
+  s.then("asserting with different expected data should produce a diff");
+  await ns.assert<ConfigMap>({
+    apiVersion: "v1",
+    kind: "ConfigMap",
+    name: "diff-demo",
+    test() {
+      expect(this).toMatchObject({
+        data: {
+          mode: "expected-value",
+          env: "staging",
+        },
+      });
+    },
+  });
+});
+
 test("Example: asserts a non-existent ConfigMap (expected to fail)", async (s) => {
   s.given("a new namespace exists");
   const ns = await s.newNamespace();

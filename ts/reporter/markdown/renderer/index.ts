@@ -1,6 +1,7 @@
 import { codeToANSIForcedColors } from "../../shiki";
 import type { MarkdownReporterOptions } from "../index";
 import type { Action, Report } from "../model";
+import { stripAnsi } from "../strip-ansi";
 
 const markdownLang = "markdown";
 const markdownTheme = "catppuccin-mocha";
@@ -81,15 +82,6 @@ async function highlightMarkdown(
   } catch {
     return stripped;
   }
-}
-
-function stripAnsi(input: string): string {
-  // Prefer Bun's built-in ANSI stripper when available.
-  if (typeof Bun !== "undefined" && typeof Bun.stripANSI === "function") {
-    return Bun.stripANSI(input);
-  }
-  // biome-ignore lint/suspicious/noControlCharactersInRegex: intended
-  return input.replace(/\u001b\[[0-9;]*m/g, "");
 }
 
 function trimFinalNewline(input: string): string {
