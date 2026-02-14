@@ -67,7 +67,7 @@ metadata:
 
 Error:
 
-```diff
+```diff title="message"
 expect(received).toMatchObject(expected)
 
   {

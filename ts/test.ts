@@ -51,7 +51,7 @@ function makeScenarioTest(runner: BunTestRunner): TestFunction {
       const recorder = new Recorder();
       const kubectl = createKubectl({ recorder, cwd: workspaceRoot });
       const reverting = createReverting({ recorder });
-      const reporter = newMarkdownReporter({ enableANSI: true });
+      const reporter = newMarkdownReporter({ enableANSI: true, workspaceRoot });
       const scenario = createScenario({
         name: label,
         recorder,
@@ -70,7 +70,7 @@ function makeScenarioTest(runner: BunTestRunner): TestFunction {
       recorder.record("ScenarioEnd", {});
       await report(recorder, scenario, testErr);
       if (testErr) {
-        throw testErr;
+        throw new Error(`Scenario failed: ${label}`);
       }
     };
     const report = async (

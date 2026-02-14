@@ -9,6 +9,7 @@ export interface MarkdownReporterOptions {
    * If false (default), remove ANSI escape codes.
    */
   enableANSI?: undefined | boolean;
+  workspaceRoot?: undefined | string;
 }
 
 export function newMarkdownReporter(

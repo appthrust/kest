@@ -1,6 +1,21 @@
 import type { Event } from "../../../../recording";
 import type { Report } from "../../model";
 
+const actionEndErrorMessage = [
+  "expect(received).toMatchObject(expected)",
+  "",
+  "  {",
+  '    "data": {',
+  '-     "mode": "demo",',
+  '+     "mode": "demo-1",',
+  "    },",
+  "  }",
+].join("\n");
+
+const actionEndError = new Error(actionEndErrorMessage);
+actionEndError.stack =
+  "Error: expect(received).toMatchObject(expected)\n    at Object.toMatchObject (example.test.ts:81:20)";
+
 export const state = "revertings completed";
 export const events = [
   { kind: "ScenarioStart", data: { name: "hello world" } },
@@ -98,18 +113,7 @@ export const events = [
     kind: "ActionEnd",
     data: {
       ok: false,
-      error: new Error(
-        [
-          "expect(received).toMatchObject(expected)",
-          "",
-          "  {",
-          '    "data": {',
-          '-     "mode": "demo",',
-          '+     "mode": "demo-1",',
-          "    },",
-          "  }",
-        ].join("\n")
-      ),
+      error: actionEndError,
     },
   },
   { kind: "RevertingsStart", data: {} },
@@ -254,18 +258,11 @@ export const report = {
               ],
               error: {
                 message: {
-                  text: [
-                    "expect(received).toMatchObject(expected)",
-                    "",
-                    "  {",
-                    '    "data": {',
-                    '-     "mode": "demo",',
-                    '+     "mode": "demo-1",',
-                    "    },",
-                    "  }",
-                  ].join("\n"),
+                  text: actionEndErrorMessage,
                   language: "diff",
                 },
+                stack:
+                  "Error: expect(received).toMatchObject(expected)\n    at Object.toMatchObject (example.test.ts:81:20)",
               },
             },
           ],

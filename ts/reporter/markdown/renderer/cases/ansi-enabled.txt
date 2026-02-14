@@ -12,7 +12,7 @@
 
 <white>Error:</white>
 
-<brightBlack>```</brightBlack><white>text</white>
+<brightBlack>```</brightBlack><white>text title="message"</white>
 <white>boom</white>
 <brightBlack>```</brightBlack>
 </bold>

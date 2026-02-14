@@ -2,6 +2,7 @@ import { codeToANSIForcedColors } from "../../shiki";
 import type { MarkdownReporterOptions } from "../index";
 import type { Action, Report } from "../model";
 import { stripAnsi } from "../strip-ansi";
+import { renderTrace } from "../trace/render";
 
 const markdownLang = "markdown";
 const markdownTheme = "catppuccin-mocha";
@@ -10,6 +11,11 @@ type StdinReplacement = Readonly<{
   placeholder: string;
   stdin: string;
   stdinLanguage: string;
+}>;
+
+type TraceReplacement = Readonly<{
+  placeholder: string;
+  rawStack: string;
 }>;
 
 function normalizeStdin(stdin: string): string {
@@ -42,9 +48,40 @@ function applyStdinReplacements(
   return current;
 }
 
+async function resolveTraceReplacements(
+  markdown: string,
+  replacements: ReadonlyArray<TraceReplacement>,
+  options: MarkdownReporterOptions
+): Promise<string> {
+  if (replacements.length === 0) {
+    return markdown;
+  }
+
+  let current = markdown;
+  for (const r of replacements) {
+    const rendered = await renderTrace(r.rawStack, {
+      workspaceRoot: options.workspaceRoot,
+      enableANSI: options.enableANSI,
+    });
+
+    if (rendered) {
+      current = current.replace(r.placeholder, rendered);
+    } else {
+      // Remove the entire trace code block (fences + placeholder + blank line)
+      current = current.replace(
+        `\`\`\`ts title="trace"\n${r.placeholder}\n\`\`\`\n\n`,
+        ""
+      );
+    }
+  }
+  return current;
+}
+
 async function highlightMarkdown(
   markdown: string,
-  stdinReplacements: ReadonlyArray<StdinReplacement>
+  stdinReplacements: ReadonlyArray<StdinReplacement>,
+  traceReplacements: ReadonlyArray<TraceReplacement>,
+  options: MarkdownReporterOptions
 ): Promise<string> {
   const stripped = stripAnsi(markdown);
   try {
@@ -54,31 +91,29 @@ async function highlightMarkdown(
       markdownTheme
     );
 
-    if (stdinReplacements.length === 0) {
-      // Keep output shape stable: always end with a single trailing newline.
-      return highlightedMarkdown.replace(/\n+$/, "\n");
+    let result = highlightedMarkdown;
+
+    if (stdinReplacements.length > 0) {
+      const highlightedStdinList = await Promise.all(
+        stdinReplacements.map(async (r) => {
+          const highlightedStdin = await codeToANSIForcedColors(
+            r.stdin,
+            r.stdinLanguage,
+            markdownTheme
+          );
+          // Avoid inserting an extra blank line before `EOF`.
+          const trimmed = trimFinalNewline(
+            highlightedStdin.replace(/\n+$/, "\n")
+          );
+          return { ...r, stdin: trimmed } satisfies StdinReplacement;
+        })
+      );
+      result = applyStdinReplacements(result, highlightedStdinList);
     }
 
-    const highlightedStdinList = await Promise.all(
-      stdinReplacements.map(async (r) => {
-        const highlightedStdin = await codeToANSIForcedColors(
-          r.stdin,
-          r.stdinLanguage,
-          markdownTheme
-        );
-        // Avoid inserting an extra blank line before `EOF`.
-        const trimmed = trimFinalNewline(
-          highlightedStdin.replace(/\n+$/, "\n")
-        );
-        return { ...r, stdin: trimmed } satisfies StdinReplacement;
-      })
-    );
+    result = await resolveTraceReplacements(result, traceReplacements, options);
 
-    const replaced = applyStdinReplacements(
-      highlightedMarkdown,
-      highlightedStdinList
-    );
-    return replaced.replace(/\n+$/, "\n");
+    return result.replace(/\n+$/, "\n");
   } catch {
     return stripped;
   }
@@ -106,7 +141,7 @@ function statusEmoji(status: keyof typeof statusEmojiByStatus): string {
 }
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: rendering is intentionally linear and explicit
-export function renderReport(
+export async function renderReport(
   report: Report,
   options: MarkdownReporterOptions
 ): Promise<string> {
@@ -114,7 +149,9 @@ export function renderReport(
 
   const renderedScenarios: Array<string> = [];
   const stdinReplacements: Array<StdinReplacement> = [];
+  const traceReplacements: Array<TraceReplacement> = [];
   let stdinSeq = 0;
+  let traceSeq = 0;
 
   for (const scenario of report.scenarios) {
     const isEmpty =
@@ -222,10 +259,22 @@ export function renderReport(
         const lang = action.error.message.language ?? "text";
         lines.push("Error:");
         lines.push("");
-        lines.push(`\`\`\`${lang}`);
+        lines.push(`\`\`\`${lang} title="message"`);
         lines.push(trimFinalNewline(messageText));
         lines.push("```");
         lines.push("");
+
+        if (action.error?.stack) {
+          const placeholder = `__KEST_TRACE_${traceSeq++}__`;
+          traceReplacements.push({
+            placeholder,
+            rawStack: action.error.stack,
+          });
+          lines.push('```ts title="trace"');
+          lines.push(placeholder);
+          lines.push("```");
+          lines.push("");
+        }
       }
     };
 
@@ -281,7 +330,17 @@ export function renderReport(
   const rendered = renderedScenarios.join("\n\n");
   const markdown = rendered.endsWith("\n") ? rendered : `${rendered}\n`;
   if (!enableANSI) {
-    return Promise.resolve(markdown);
+    const resolved = await resolveTraceReplacements(
+      markdown,
+      traceReplacements,
+      options
+    );
+    return resolved;
   }
-  return highlightMarkdown(markdown, stdinReplacements);
+  return highlightMarkdown(
+    markdown,
+    stdinReplacements,
+    traceReplacements,
+    options
+  );
 }

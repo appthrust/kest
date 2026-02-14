@@ -1,0 +1,33 @@
+# trace test
+
+## Scenario Overview
+
+| # | Action | Status |
+|---|--------|--------|
+| 1 | Assert `ConfigMap` "my-config" | ❌ |
+
+## Scenario Details
+
+### Then: confirm ConfigMap
+
+**❌ Assert `ConfigMap` "my-config"** (Failed after 3 attempts)
+
+```shell
+kubectl get ConfigMap/my-config -o yaml
+```
+
+Error:
+
+```diff title="message"
+expect(received).toMatchObject(expected)
+
+  {
+-     "mode": "a",
++     "mode": "b",
+  }
+```
+
+```ts title="trace"
+at /Users/test/project/src/test.ts:10:5
+at /Users/test/project/node_modules/some-lib/index.js:20:10
+```

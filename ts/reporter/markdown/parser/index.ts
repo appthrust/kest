@@ -166,6 +166,7 @@ function applyRegularActionEnd(
           ? "diff"
           : "text",
       },
+      stack: event.data.error.stack,
     };
   }
 
