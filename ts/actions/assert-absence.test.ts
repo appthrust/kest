@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import type { K8sResource } from "../apis";
-import type { Kubectl } from "../kubectl";
+import type { Kubectl, KubectlContext } from "../kubectl";
 import { assertAbsence } from "./assert-absence";
 
 interface ConfigMap extends K8sResource {
@@ -16,7 +16,11 @@ interface Deployment extends K8sResource {
 }
 
 function makeKubectl(
-  getImpl: (type: string, name: string) => Promise<string>
+  getImpl: (
+    type: string,
+    name: string,
+    context?: KubectlContext
+  ) => Promise<string>
 ): Kubectl {
   const kubectl: Kubectl = {
     extends: () => kubectl,
@@ -103,4 +107,43 @@ test("assertAbsence uses Kind.version.group for non-core resources", async () =>
   });
 
   expect(calledWith).toEqual({ type: "Deployment.v1.apps", name: "my-app" });
+});
+
+test("assertAbsence passes namespace context to kubectl.get", async () => {
+  let capturedContext: KubectlContext | undefined;
+  const kubectl = makeKubectl((_type, _name, context) => {
+    capturedContext = context;
+    throw new Error(
+      'kubectl get failed (exit code 1): Error from server (NotFound): configmaps "my-config" not found'
+    );
+  });
+
+  const fn = assertAbsence.query({ kubectl });
+  await fn<ConfigMap>({
+    apiVersion: "v1",
+    kind: "ConfigMap",
+    name: "my-config",
+    namespace: "my-ns",
+  });
+
+  expect(capturedContext).toEqual({ namespace: "my-ns" });
+});
+
+test("assertAbsence does not override context when namespace is omitted", async () => {
+  let capturedContext: KubectlContext | undefined;
+  const kubectl = makeKubectl((_type, _name, context) => {
+    capturedContext = context;
+    throw new Error(
+      'kubectl get failed (exit code 1): Error from server (NotFound): configmaps "my-config" not found'
+    );
+  });
+
+  const fn = assertAbsence.query({ kubectl });
+  await fn<ConfigMap>({
+    apiVersion: "v1",
+    kind: "ConfigMap",
+    name: "my-config",
+  });
+
+  expect(capturedContext).toBeUndefined();
 });

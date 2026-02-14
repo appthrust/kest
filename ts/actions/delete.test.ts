@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import type { K8sResource } from "../apis";
-import type { Kubectl } from "../kubectl";
+import type { Kubectl, KubectlDeleteOptions } from "../kubectl";
 import { deleteResource } from "./delete";
 
 interface ConfigMap extends K8sResource {
@@ -16,7 +16,11 @@ interface Deployment extends K8sResource {
 }
 
 function makeKubectlRecorder(
-  onDelete: (resource: string, name: string) => void
+  onDelete: (
+    resource: string,
+    name: string,
+    options?: KubectlDeleteOptions
+  ) => void
 ): Kubectl {
   const kubectl: Kubectl = {
     extends: () => kubectl,
@@ -27,8 +31,8 @@ function makeKubectlRecorder(
     list: () => Promise.resolve(""),
     patch: () => Promise.resolve(""),
     label: () => Promise.resolve(""),
-    delete: (resource, name) => {
-      onDelete(resource, name);
+    delete: (resource, name, options) => {
+      onDelete(resource, name, options);
       return Promise.resolve("");
     },
   };
@@ -65,4 +69,37 @@ test("delete uses Kind.version.group for non-core resources", async () => {
   });
 
   expect(saw).toEqual({ resource: "Deployment.v1.apps", name: "my-app" });
+});
+
+test("delete passes namespace context to kubectl.delete", async () => {
+  let sawOptions: KubectlDeleteOptions | undefined;
+  const kubectl = makeKubectlRecorder((_resource, _name, options) => {
+    sawOptions = options;
+  });
+
+  const fn = deleteResource.mutate({ kubectl });
+  await fn<ConfigMap>({
+    apiVersion: "v1",
+    kind: "ConfigMap",
+    name: "my-config",
+    namespace: "my-ns",
+  });
+
+  expect(sawOptions).toEqual({ context: { namespace: "my-ns" } });
+});
+
+test("delete does not override context when namespace is omitted", async () => {
+  let sawOptions: KubectlDeleteOptions | undefined;
+  const kubectl = makeKubectlRecorder((_resource, _name, options) => {
+    sawOptions = options;
+  });
+
+  const fn = deleteResource.mutate({ kubectl });
+  await fn<ConfigMap>({
+    apiVersion: "v1",
+    kind: "ConfigMap",
+    name: "my-config",
+  });
+
+  expect(sawOptions).toBeUndefined();
 });

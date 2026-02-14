@@ -8,7 +8,14 @@ export const deleteResource = {
   mutate:
     ({ kubectl }) =>
     async <T extends K8sResource>(resource: K8sResourceReference<T>) => {
-      await kubectl.delete(toKubectlType(resource), resource.name);
+      const overrideContext = resource.namespace
+        ? { context: { namespace: resource.namespace } }
+        : undefined;
+      await kubectl.delete(
+        toKubectlType(resource),
+        resource.name,
+        overrideContext
+      );
       return undefined;
     },
   describe: (resource) => {

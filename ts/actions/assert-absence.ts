@@ -10,8 +10,15 @@ export const assertAbsence = {
     async <T extends K8sResource>(
       resource: K8sResourceReference<T>
     ): Promise<void> => {
+      const overrideContext = resource.namespace
+        ? { namespace: resource.namespace }
+        : undefined;
       try {
-        await kubectl.get(toKubectlType(resource), resource.name);
+        await kubectl.get(
+          toKubectlType(resource),
+          resource.name,
+          overrideContext
+        );
       } catch (error) {
         if (isNotFoundError(error)) {
           return;

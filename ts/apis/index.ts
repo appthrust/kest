@@ -1254,6 +1254,15 @@ export interface K8sResourceReference<T extends K8sResource = K8sResource> {
    * `metadata.name` of the target resource.
    */
   readonly name: string;
+
+  /**
+   * Optional namespace override.
+   *
+   * When used on a {@link Namespace}-scoped API surface the namespace is
+   * already set; this field is mainly useful at the {@link Scenario} or
+   * {@link Cluster} level for namespaced resources.
+   */
+  readonly namespace?: undefined | string;
 }
 
 /**
@@ -1327,6 +1336,15 @@ export interface ResourceTest<T extends K8sResource = K8sResource> {
   readonly name: string;
 
   /**
+   * Optional namespace override.
+   *
+   * When used on a {@link Namespace}-scoped API surface the namespace is
+   * already set; this field is mainly useful at the {@link Scenario} or
+   * {@link Cluster} level for namespaced resources.
+   */
+  readonly namespace?: undefined | string;
+
+  /**
    * Assertion callback.
    *
    * The callback is invoked with `this` bound to the fetched resource.
@@ -1348,6 +1366,15 @@ export interface ResourceListTest<T extends K8sResource = K8sResource> {
    * Kubernetes kind (e.g. `"ConfigMap"`, `"Deployment"`).
    */
   readonly kind: T["kind"];
+
+  /**
+   * Optional namespace override.
+   *
+   * When used on a {@link Namespace}-scoped API surface the namespace is
+   * already set; this field is mainly useful at the {@link Scenario} or
+   * {@link Cluster} level for namespaced resources.
+   */
+  readonly namespace?: undefined | string;
 
   /**
    * Assertion callback.
@@ -1377,6 +1404,15 @@ export interface ResourceOneTest<T extends K8sResource = K8sResource> {
    * Kubernetes kind (e.g. `"ConfigMap"`, `"Deployment"`).
    */
   readonly kind: T["kind"];
+
+  /**
+   * Optional namespace override.
+   *
+   * When used on a {@link Namespace}-scoped API surface the namespace is
+   * already set; this field is mainly useful at the {@link Scenario} or
+   * {@link Cluster} level for namespaced resources.
+   */
+  readonly namespace?: undefined | string;
 
   /**
    * Optional predicate to narrow which resources are candidates.

@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import type { K8sResource } from "../apis";
-import type { Kubectl } from "../kubectl";
+import type { Kubectl, KubectlContext } from "../kubectl";
 import { assertOne } from "./assert-one";
 
 interface ConfigMap extends K8sResource {
@@ -18,6 +18,27 @@ function makeKubectlReturningList(yaml: string): Kubectl {
     create: async () => "",
     get: async () => "",
     list: async () => yaml,
+    patch: async () => "",
+    delete: async () => "",
+    label: async () => "",
+  };
+  return kubectl;
+}
+
+function makeKubectlCapturingListContext(
+  yaml: string,
+  onList: (type: string, context?: KubectlContext) => void
+): Kubectl {
+  const kubectl: Kubectl = {
+    extends: () => kubectl,
+    apply: async () => "",
+    applyStatus: async () => "",
+    create: async () => "",
+    get: async () => "",
+    list: (type, context) => {
+      onList(type, context);
+      return Promise.resolve(yaml);
+    },
     patch: async () => "",
     delete: async () => "",
     label: async () => "",
@@ -232,4 +253,65 @@ items:
       },
     })
   ).rejects.toThrow("is not expected");
+});
+
+test("assertOne passes namespace context to kubectl.list", async () => {
+  const yaml = `
+apiVersion: v1
+kind: List
+items:
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: my-config
+    data:
+      mode: demo
+`.trim();
+
+  let capturedContext: KubectlContext | undefined;
+  const kubectl = makeKubectlCapturingListContext(yaml, (_type, context) => {
+    capturedContext = context;
+  });
+
+  const fn = assertOne.query({ kubectl });
+  await fn<ConfigMap>({
+    apiVersion: "v1",
+    kind: "ConfigMap",
+    namespace: "my-ns",
+    test() {
+      // no-op
+    },
+  });
+
+  expect(capturedContext).toEqual({ namespace: "my-ns" });
+});
+
+test("assertOne does not override context when namespace is omitted", async () => {
+  const yaml = `
+apiVersion: v1
+kind: List
+items:
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: my-config
+    data:
+      mode: demo
+`.trim();
+
+  let capturedContext: KubectlContext | undefined;
+  const kubectl = makeKubectlCapturingListContext(yaml, (_type, context) => {
+    capturedContext = context;
+  });
+
+  const fn = assertOne.query({ kubectl });
+  await fn<ConfigMap>({
+    apiVersion: "v1",
+    kind: "ConfigMap",
+    test() {
+      // no-op
+    },
+  });
+
+  expect(capturedContext).toBeUndefined();
 });

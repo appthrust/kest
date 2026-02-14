@@ -8,7 +8,14 @@ export const assert = {
   query:
     ({ kubectl }: Deps) =>
     async <T extends K8sResource>(condition: ResourceTest<T>): Promise<T> => {
-      const yaml = await kubectl.get(toKubectlType(condition), condition.name);
+      const overrideContext = condition.namespace
+        ? { namespace: condition.namespace }
+        : undefined;
+      const yaml = await kubectl.get(
+        toKubectlType(condition),
+        condition.name,
+        overrideContext
+      );
       const result = parseK8sResourceYaml(yaml);
       if (!result.ok) {
         throw new Error(

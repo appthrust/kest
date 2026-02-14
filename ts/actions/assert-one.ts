@@ -11,7 +11,13 @@ export const assertOne = {
     async <T extends K8sResource>(
       condition: ResourceOneTest<T>
     ): Promise<T> => {
-      const yaml = await kubectl.list(toKubectlType(condition));
+      const overrideContext = condition.namespace
+        ? { namespace: condition.namespace }
+        : undefined;
+      const yaml = await kubectl.list(
+        toKubectlType(condition),
+        overrideContext
+      );
       const result = parseK8sResourceListYaml(yaml);
       if (!result.ok) {
         throw new Error(
