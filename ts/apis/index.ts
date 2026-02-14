@@ -1487,7 +1487,27 @@ export interface K8sResource {
   kind: string;
   metadata: {
     name: string;
-    namespace?: string;
+    namespace?: string | undefined;
+    labels?: Record<string, string> | undefined;
+    annotations?: Record<string, string> | undefined;
+    resourceVersion?: string | undefined;
+    uid?: string | undefined;
+    creationTimestamp?: string | undefined;
+    generation?: number | undefined;
+    finalizers?: ReadonlyArray<string> | undefined;
+    ownerReferences?:
+      | ReadonlyArray<{
+          apiVersion: string;
+          kind: string;
+          name: string;
+          uid: string;
+          controller?: boolean | undefined;
+          blockOwnerDeletion?: boolean | undefined;
+        }>
+      | undefined;
+    deletionTimestamp?: string | undefined;
+    deletionGracePeriodSeconds?: number | undefined;
+    generateName?: string | undefined;
     [key: string]: unknown;
   };
   [key: string]: unknown;
