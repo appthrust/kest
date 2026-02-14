@@ -443,6 +443,23 @@ namespace "kest-9hdhj" deleted
 bun add -d @appthrust/kest
 ```
 
+### TypeScript Configuration
+
+If your project doesn't have a `tsconfig.json` yet, install the Bun TypeScript preset and create one:
+
+```sh
+bun add -D @types/bun @tsconfig/bun
+```
+
+```json
+// tsconfig.json
+{
+  "extends": "@tsconfig/bun"
+}
+```
+
+This enables proper type checking, autocompletion, and compatibility with Bun's APIs.
+
 ### Write Your First Test
 
 Create a test file, e.g. `my-operator.test.ts`:
