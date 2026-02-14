@@ -802,6 +802,114 @@ await ns.apply(import("./fixtures/deployment-v1.ts"));
 - [ ] Is the diff between test steps visible as a spec-level change?
 - [ ] Can you reconstruct the applied manifest from the failure report alone?
 
+### Reuse manifests with mutation for update scenarios
+
+The "keep manifests visible" principle works well when each `apply` is independent. But in **update scenarios** -- where a test applies the same resource twice with a small change -- duplicating the entire manifest obscures the intent. The reader has to mentally diff two large blocks to spot what actually changed:
+
+```ts
+// ❌ Bad — the two manifests are nearly identical.
+//    The reader must scan every line to find the one difference.
+test("scaling up increases available replicas", async (s) => {
+  const ns = await s.newNamespace();
+
+  s.when("I apply a Deployment with 1 replica");
+  await ns.apply({
+    apiVersion: "apps/v1",
+    kind: "Deployment",
+    metadata: { name: "my-app" },
+    spec: {
+      replicas: 1,
+      selector: { matchLabels: { app: "my-app" } },
+      template: {
+        metadata: { labels: { app: "my-app" } },
+        spec: { containers: [{ name: "app", image: "nginx" }] },
+      },
+    },
+  });
+
+  s.when("I scale to 3 replicas");
+  await ns.apply({
+    apiVersion: "apps/v1",
+    kind: "Deployment",
+    metadata: { name: "my-app" },
+    spec: {
+      replicas: 3, // <-- the only change, buried in a wall of duplication
+      selector: { matchLabels: { app: "my-app" } },
+      template: {
+        metadata: { labels: { app: "my-app" } },
+        spec: { containers: [{ name: "app", image: "nginx" }] },
+      },
+    },
+  });
+
+  s.then("the Deployment should have 3 available replicas");
+  await ns.assert({
+    apiVersion: "apps/v1",
+    kind: "Deployment",
+    name: "my-app",
+    test() {
+      expect(this.status?.availableReplicas).toBe(3);
+    },
+  });
+});
+```
+
+Instead, define the manifest once, then use `structuredClone` to create a copy and mutate only the fields the scenario cares about. The mutation lines **are** the test scenario -- they tell the reader exactly what changed:
+
+```ts
+// ✅ Good — the base manifest is visible, and the mutation is the scenario.
+test("scaling up increases available replicas", async (s) => {
+  const ns = await s.newNamespace();
+
+  s.when("I apply a Deployment with 1 replica");
+  const deployment = {
+    apiVersion: "apps/v1" as const,
+    kind: "Deployment" as const,
+    metadata: { name: "my-app" },
+    spec: {
+      replicas: 1,
+      selector: { matchLabels: { app: "my-app" } },
+      template: {
+        metadata: { labels: { app: "my-app" } },
+        spec: { containers: [{ name: "app", image: "nginx" }] },
+      },
+    },
+  };
+  await ns.apply(deployment);
+
+  s.when("I scale to 3 replicas");
+  const scaled = structuredClone(deployment);
+  scaled.spec.replicas = 3;
+  await ns.apply(scaled);
+
+  s.then("the Deployment should have 3 available replicas");
+  await ns.assert({
+    apiVersion: "apps/v1",
+    kind: "Deployment",
+    name: "my-app",
+    test() {
+      expect(this.status?.availableReplicas).toBe(3);
+    },
+  });
+});
+```
+
+`structuredClone` is a standard API (no dependencies) that creates a true deep copy, so mutations never affect the original. The base manifest stays fully visible in the test, and the mutation lines make the intent unmistakable.
+
+**When to use which approach:**
+
+| Scenario | Approach |
+| --- | --- |
+| Each `apply` is a different resource or independent input | Inline each manifest separately (keep manifests visible) |
+| The same resource is applied twice with a small change | `structuredClone` + targeted mutation |
+| The manifest is too large to inline comfortably | Static fixture files (`import("./fixtures/...")`) |
+
+**Mutation-readability checklist:**
+
+- [ ] Is the base manifest defined once and fully visible in the test?
+- [ ] Are only the fields relevant to the scenario mutated?
+- [ ] Can a reader understand the update by reading just the mutation lines?
+
 ### Avoiding naming collisions between tests
 
 When tests run in parallel, hard-coded resource names can collide. In most cases, `newNamespace()` is all you need -- each test gets its own namespace, so names like `"my-config"` or `"my-app"` are already isolated:
