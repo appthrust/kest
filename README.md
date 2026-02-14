@@ -929,6 +929,50 @@ await s.create({
 - [ ] Is `generateName` reserved for cluster-scoped resources or multi-instance cases?
 - [ ] Can you identify every resource in the failure report without decoding random suffixes?
 
+### Use `toMatchObject` for assertions without type parameters
+
+When you omit the type parameter from assertion actions (`assert`, `assertList`,
+`assertOne`, etc.), `this` is typed as the generic `K8sResource`. Custom fields
+like `spec` become `unknown`, forcing type casts on every access:
+
+```ts
+// ❌ Without a type parameter, every field access needs a cast
+await ns.assert({
+  apiVersion: "example.com/v1",
+  kind: "MyResource",
+  name: "my-instance",
+  test() {
+    expect((this.spec as any).replicas).toBe(3);
+    expect((this.spec as any).image).toBe("my-app:latest");
+  },
+});
+```
+
+Use `toMatchObject` instead — it accepts a plain object and checks that the
+resource contains the expected subset, with no type narrowing required:
+
+```ts
+// ✅ toMatchObject — no casts, no type parameter needed
+await ns.assert({
+  apiVersion: "example.com/v1",
+  kind: "MyResource",
+  name: "my-instance",
+  test() {
+    expect(this).toMatchObject({
+      spec: {
+        replicas: 3,
+        image: "my-app:latest",
+      },
+    });
+  },
+});
+```
+
+**When to use which:**
+
+- **With a type parameter** (e.g. `assert<MyResource>`) — either style works; `this` is fully typed, so it's a matter of preference.
+- **Without a type parameter** — always use `toMatchObject`. `this.spec` is `unknown`, and `toMatchObject` scales naturally as you add more assertions.
+
 ## Type Safety
 
 Define TypeScript interfaces for your Kubernetes resources to get full type checking in manifests and assertions:
