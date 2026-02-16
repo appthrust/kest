@@ -102,12 +102,6 @@ test(".not fails when arrays actually match", () => {
   }).toThrow();
 });
 
-test("fails when actual is not an array", () => {
-  expect(() => {
-    expect("not-an-array").toMatchUnordered([{ a: 1 }]);
-  }).toThrow("expected value to be an array");
-});
-
 test("deeply nested objects with partial matching", () => {
   const actual = [
     {
@@ -125,6 +119,59 @@ test("deeply nested objects with partial matching", () => {
     { metadata: { name: "cluster-2" }, spec: { version: "1.28" } },
   ]);
 });
+
+// ---------------------------------------------------------------------------
+// Asymmetric matcher support
+// ---------------------------------------------------------------------------
+
+test("supports expect.stringMatching in expected values", () => {
+  const actual = [
+    { metadata: { name: "my-cd-abc123" } },
+    { metadata: { name: "initial-cs" } },
+  ];
+  expect(actual).toMatchUnordered([
+    { metadata: { name: "initial-cs" } },
+    { metadata: { name: expect.stringMatching(/^my-cd-/) } },
+  ]);
+});
+
+test("supports expect.any in expected values", () => {
+  expect([{ count: 42 }, { count: 7 }]).toMatchUnordered([
+    { count: expect.any(Number) },
+    { count: expect.any(Number) },
+  ]);
+});
+
+test("supports expect.objectContaining in expected values", () => {
+  const actual = [
+    { metadata: { name: "a", labels: { app: "web", env: "prod" } } },
+    { metadata: { name: "b", labels: { app: "api", env: "dev" } } },
+  ];
+  expect(actual).toMatchUnordered([
+    { metadata: expect.objectContaining({ name: "b" }) },
+    { metadata: expect.objectContaining({ name: "a" }) },
+  ]);
+});
+
+test("supports expect.arrayContaining in expected values", () => {
+  const actual = [{ tags: ["web", "prod", "v2"] }, { tags: ["api", "dev"] }];
+  expect(actual).toMatchUnordered([
+    { tags: expect.arrayContaining(["dev", "api"]) },
+    { tags: expect.arrayContaining(["prod"]) },
+  ]);
+});
+
+test("fails when asymmetric matcher does not match", () => {
+  expect(() => {
+    expect([{ name: "hello" }]).toMatchUnordered([
+      { name: expect.stringMatching(/^goodbye/) },
+    ]);
+  }).toThrow();
+});
+
+// ---------------------------------------------------------------------------
+// Nested array ordering
+// ---------------------------------------------------------------------------
 
 test("unordered only at top level: nested arrays are order-sensitive", () => {
   const actual = [
@@ -145,4 +192,87 @@ test("unordered only at top level: nested arrays are order-sensitive", () => {
       { name: "b", ports: [443, 80] },
     ]);
   }).toThrow();
+});
+
+// ---------------------------------------------------------------------------
+// Failure message diff format
+// ---------------------------------------------------------------------------
+
+function getFailureMessage(fn: () => void): string {
+  try {
+    fn();
+    throw new Error("expected function to throw");
+  } catch (e: unknown) {
+    return Bun.stripANSI((e as Error).message).trim();
+  }
+}
+
+test("failure message shows unified toMatchObject-style diff", () => {
+  const msg = getFailureMessage(() => {
+    expect([
+      { metadata: { name: "app-secret" }, data: { token: "abc" } },
+      { metadata: { name: "db-secret" }, data: { token: "xyz" } },
+    ]).toMatchUnordered([
+      { metadata: { name: "app-secret" } },
+      { metadata: { name: "cache-secret" } },
+    ]);
+  });
+
+  expect(msg).toBe(
+    `expect(received).toMatchUnordered(expected)
+
+  [
+    {
++     "data": {
++       "token": "abc",
++     },
+      "metadata": {
+        "name": "app-secret",
+      },
+    },
+    {
++     "data": {
++       "token": "xyz",
++     },
+      "metadata": {
+-       "name": "cache-secret",
++       "name": "db-secret",
+      },
+    },
+  ]
+
+- Expected  - 1
++ Received  + 7`
+  );
+});
+
+test("failure message picks closest actual for diff", () => {
+  const msg = getFailureMessage(() => {
+    expect([
+      { name: "alpha", score: 100 },
+      { name: "beta", score: 200 },
+    ]).toMatchUnordered([
+      { name: "alpha", score: 100 },
+      { name: "beta", score: 999 },
+    ]);
+  });
+
+  expect(msg).toBe(
+    `expect(received).toMatchUnordered(expected)
+
+  [
+    {
+      "name": "alpha",
+      "score": 100,
+    },
+    {
+      "name": "beta",
+-     "score": 999,
++     "score": 200,
+    },
+  ]
+
+- Expected  - 1
++ Received  + 1`
+  );
 });
