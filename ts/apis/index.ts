@@ -1555,3 +1555,30 @@ export interface K8sResource {
 export interface ImportedYaml {
   readonly default: unknown;
 }
+
+// ---------------------------------------------------------------------------
+// Custom matchers – auto-registered when importing `@appthrust/kest`
+// ---------------------------------------------------------------------------
+
+declare module "bun:test" {
+  interface Matchers<T> {
+    /**
+     * Assert that an array contains the expected items using **deep partial
+     * matching** (same semantics as `toMatchObject`) but **ignoring order**.
+     *
+     * - Each expected item must match exactly one actual item (one-to-one).
+     * - Does not check array length (actual may have extra items).
+     *
+     * ```ts
+     * expect(actual).toMatchUnordered([
+     *   { metadata: { name: "b" } },
+     *   { metadata: { name: "a" } },
+     * ]);
+     * ```
+     */
+    toMatchUnordered(expected: ReadonlyArray<unknown>): void;
+  }
+  interface AsymmetricMatchers {
+    toMatchUnordered(expected: ReadonlyArray<unknown>): void;
+  }
+}

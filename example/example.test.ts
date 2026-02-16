@@ -197,6 +197,39 @@ test("Example: asserts resource presence and absence in a list", async (s) => {
   });
 });
 
+test("Example: asserts list items in any order with toMatchUnordered", async (s) => {
+  s.given("a new namespace exists");
+  const ns = await s.newNamespace();
+
+  s.when("I apply multiple Secrets");
+  await ns.apply({
+    apiVersion: "v1",
+    kind: "Secret",
+    metadata: { name: "app-secret" },
+    stringData: { token: "abc" },
+  });
+  await ns.apply({
+    apiVersion: "v1",
+    kind: "Secret",
+    metadata: { name: "db-secret" },
+    stringData: { token: "xyz" },
+  });
+
+  s.then("the list should contain both Secrets regardless of order");
+  await ns.assertList({
+    apiVersion: "v1",
+    kind: "Secret",
+    test() {
+      // toMatchUnordered uses deep partial matching (like toMatchObject)
+      // but ignores array order.
+      expect(this).toMatchUnordered([
+        { metadata: { name: "db-secret" } },
+        { metadata: { name: "app-secret" } },
+      ]);
+    },
+  });
+});
+
 test("Example: applies status subresource to custom resource", async (s) => {
   s.given("a HelloWorld custom resource definition exists");
   await s.apply(import("./hello-world-crd.yaml"));

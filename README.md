@@ -915,11 +915,11 @@ test("scaling up increases available replicas", async (s) => {
 
 **When to use which approach:**
 
-| Scenario | Approach |
-| --- | --- |
+| Scenario                                                  | Approach                                                 |
+| --------------------------------------------------------- | -------------------------------------------------------- |
 | Each `apply` is a different resource or independent input | Inline each manifest separately (keep manifests visible) |
-| The same resource is applied twice with a small change | `structuredClone` + targeted mutation |
-| The manifest is too large to inline comfortably | Static fixture files (`import("./fixtures/...")`) |
+| The same resource is applied twice with a small change    | `structuredClone` + targeted mutation                    |
+| The manifest is too large to inline comfortably           | Static fixture files (`import("./fixtures/...")`)        |
 
 **Mutation-readability checklist:**
 
@@ -1097,6 +1097,34 @@ await ns.assert({
 
 - **With a type parameter** (e.g. `assert<MyResource>`) — either style works; `this` is fully typed, so it's a matter of preference.
 - **Without a type parameter** — always use `toMatchObject`. `this.spec` is `unknown`, and `toMatchObject` scales naturally as you add more assertions.
+
+### Prefer whole-array assertions over for-loops in `assertList`
+
+Avoid `for` loops inside `assertList` — when an assertion fails, the error doesn't identify which item caused it:
+
+```ts
+// ❌ Failure messages are opaque — which Secret failed?
+test() {
+  for (const s of this) {
+    expect(s.metadata.labels).toMatchObject({ app: "my-app" });
+  }
+}
+
+// ✅ Assert the whole array — full per-item diff on failure
+test() {
+  expect(this).toMatchUnordered([
+    { metadata: { name: "secret-a", labels: { app: "my-app" } } },
+    { metadata: { name: "secret-b", labels: { app: "my-app" } } },
+  ]);
+}
+```
+
+`toMatchUnordered` uses deep partial matching (like `toMatchObject`) but ignores order. Neither matcher checks array length — use `toHaveLength` when you need an exact count.
+
+| Matcher | Order-sensitive | Matching |
+|---|---|---|
+| `toMatchObject([...])` | yes | deep partial |
+| `toMatchUnordered([...])` | no | deep partial |
 
 ## Type Safety
 
