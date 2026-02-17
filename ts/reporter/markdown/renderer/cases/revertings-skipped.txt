@@ -1,0 +1,43 @@
+# debug scenario
+
+## Scenario Overview
+
+| # | Action | Status |
+|---|--------|--------|
+| 1 | Apply Namespace `kest-xyz99` | ✅ |
+| 2 | Assert `ConfigMap` "my-config" | ❌ |
+
+## Scenario Details
+
+### Given: create Namespace
+
+**✅ Apply Namespace `kest-xyz99`**
+
+```shell
+kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Namespace
+metadata: 
+  name: kest-xyz99
+EOF
+```
+
+```text title="stdout"
+namespace/kest-xyz99 created
+```
+
+### Then: assert something
+
+**❌ Assert `ConfigMap` "my-config"** (Failed after 2 attempts)
+
+Error:
+
+```text title="message"
+expected value to match
+```
+
+### Cleanup (skipped)
+
+Cleanup was skipped because `KEST_PRESERVE_ON_FAILURE=1` is set.
+Resources created during this scenario were **not** deleted.
+To clean up manually, run the revert commands from a passing test run.

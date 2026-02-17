@@ -75,6 +75,11 @@ function handleNonBDDEvent(state: ParseState, event: Event): void {
       state.inCleanup = false;
       clearCurrentActionState(state);
       return;
+    case "RevertingsSkipped": {
+      const scenario = ensureScenario(state.currentScenario, state.report);
+      scenario.cleanupSkipped = true;
+      return;
+    }
     case "ActionStart":
       handleActionStart(state, event);
       return;

@@ -157,7 +157,8 @@ export async function renderReport(
     const isEmpty =
       scenario.overview.length === 0 &&
       scenario.details.length === 0 &&
-      scenario.cleanup.length === 0;
+      scenario.cleanup.length === 0 &&
+      !scenario.cleanupSkipped;
     if (isEmpty) {
       continue;
     }
@@ -294,7 +295,19 @@ export async function renderReport(
     }
 
     // Cleanup
-    if (scenario.cleanup.length > 0) {
+    if (scenario.cleanupSkipped) {
+      lines.push("### Cleanup (skipped)");
+      lines.push("");
+      lines.push(
+        "Cleanup was skipped because `KEST_PRESERVE_ON_FAILURE=1` is set."
+      );
+      lines.push(
+        "Resources created during this scenario were **not** deleted."
+      );
+      lines.push(
+        "To clean up manually, run the revert commands from a passing test run."
+      );
+    } else if (scenario.cleanup.length > 0) {
       lines.push("### Cleanup");
       lines.push("");
       lines.push("| # | Action | Status |");

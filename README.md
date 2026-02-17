@@ -1168,12 +1168,25 @@ await ns.assert<MyCustomResource>({
 });
 ```
 
+## Tips
+
+### Debugging failed tests
+
+By default, Kest cleans up all resources after every test -- even when the test fails. This keeps the cluster tidy but destroys the state you need for debugging. To preserve resources on failure, set `KEST_PRESERVE_ON_FAILURE=1`:
+
+```sh
+KEST_PRESERVE_ON_FAILURE=1 bun test
+```
+
+When active, Kest skips cleanup for failed scenarios so you can inspect the cluster with `kubectl`. The test report will show a "Cleanup (skipped)" notice instead of the usual cleanup table. Remember to delete the leftover resources manually once you're done investigating.
+
 ## Environment Variables
 
-| Variable           | Description                                                             |
-| ------------------ | ----------------------------------------------------------------------- |
-| `KEST_SHOW_REPORT` | Set to `"1"` to show Markdown reports for all tests (not just failures) |
-| `KEST_SHOW_EVENTS` | Set to `"1"` to dump raw recorder events for debugging                  |
+| Variable                    | Description                                                             |
+| --------------------------- | ----------------------------------------------------------------------- |
+| `KEST_SHOW_REPORT`          | Set to `"1"` to show Markdown reports for all tests (not just failures) |
+| `KEST_SHOW_EVENTS`          | Set to `"1"` to dump raw recorder events for debugging                  |
+| `KEST_PRESERVE_ON_FAILURE`  | Set to `"1"` to skip cleanup when a test fails, preserving cluster state for debugging |
 
 ## License
 

@@ -25,6 +25,7 @@ const cases: Array<ParserTestCase> = [
   await import("./cases/retry-collapses-to-last-attempt.test"),
   await import("./cases/retry-collapses-multi-command-attempts.test"),
   await import("./cases/no-events.test"),
+  await import("./cases/revertings-skipped.test"),
 ];
 
 test.each(cases)("parses $state", ({ events, report }) => {

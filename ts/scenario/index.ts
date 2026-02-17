@@ -32,7 +32,7 @@ import { retryUntil } from "../retry";
 import type { Reverting } from "../reverting";
 
 export interface InternalScenario extends Scenario {
-  cleanup(): Promise<void>;
+  cleanup(options?: { skip?: boolean }): Promise<void>;
   getReport(): Promise<string>;
 }
 
@@ -61,8 +61,12 @@ export function createScenario(deps: CreateScenarioOptions): InternalScenario {
     generateName: (prefix: string) => generateRandomName(prefix),
     newNamespace: createNewNamespaceFn(deps),
     useCluster: createUseClusterFn(deps),
-    async cleanup() {
-      await reverting.revert();
+    async cleanup(options?: { skip?: boolean }) {
+      if (options?.skip) {
+        reverting.skip();
+      } else {
+        await reverting.revert();
+      }
     },
     async getReport() {
       return await reporter.report(recorder.getEvents());

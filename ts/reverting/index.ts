@@ -26,6 +26,9 @@ export function createReverting(deps: Deps) {
         recorder.record("RevertingsEnd", {});
       }
     },
+    skip(): void {
+      recorder.record("RevertingsSkipped", {});
+    },
   };
 }
 

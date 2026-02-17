@@ -7,6 +7,7 @@ export interface Scenario {
   overview: Array<OverviewItem>;
   details: Array<Tagged<"BDDSection", BDDSection> | Tagged<"Action", Action>>;
   cleanup: Array<CleanupItem>;
+  cleanupSkipped?: boolean;
 }
 
 type Tagged<Tag extends string, Target extends object> = Target & {

@@ -71,7 +71,8 @@ type RetryEvent =
 
 type RevertingsEvent =
   | BaseEvent<"RevertingsStart">
-  | BaseEvent<"RevertingsEnd">;
+  | BaseEvent<"RevertingsEnd">
+  | BaseEvent<"RevertingsSkipped">;
 
 type BDDEvent =
   | BaseEvent<"BDDGiven", { readonly description: string }>

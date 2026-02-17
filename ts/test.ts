@@ -43,6 +43,7 @@ type BunTestRunner = (
 const workspaceRoot = await getWorkspaceRoot();
 const showReport = process.env["KEST_SHOW_REPORT"] === "1";
 const showEvents = process.env["KEST_SHOW_EVENTS"] === "1";
+const preserveOnFailure = process.env["KEST_PRESERVE_ON_FAILURE"] === "1";
 
 function makeScenarioTest(runner: BunTestRunner): TestFunction {
   return (label, fn, options) => {
@@ -66,7 +67,9 @@ function makeScenarioTest(runner: BunTestRunner): TestFunction {
       } catch (error) {
         testErr = error as Error;
       }
-      await scenario.cleanup();
+      await scenario.cleanup({
+        skip: preserveOnFailure && testErr !== undefined,
+      });
       recorder.record("ScenarioEnd", {});
       await report(recorder, scenario, testErr);
       if (testErr) {
