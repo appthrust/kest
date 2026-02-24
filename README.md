@@ -1180,6 +1180,26 @@ KEST_PRESERVE_ON_FAILURE=1 bun test
 
 When active, Kest skips cleanup for failed scenarios so you can inspect the cluster with `kubectl`. The test report will show a "Cleanup (skipped)" notice instead of the usual cleanup table. Remember to delete the leftover resources manually once you're done investigating.
 
+### Biome configuration
+
+If you use [Biome](https://biomejs.dev/) for linting, the `noDoneCallback` rule may flag kest's `test` callback parameter as a false positive. The parameter is a `Scenario` object, not a done callback.
+
+To suppress this, extend kest's shareable Biome config in your `biome.json`:
+
+```json
+{
+  "extends": ["@appthrust/kest/biome/recommended.json"]
+}
+```
+
+This disables `lint/style/noDoneCallback` while leaving all other rules untouched. If you already extend another config, add kest's config after it:
+
+```json
+{
+  "extends": ["@suin/biome.json", "@appthrust/kest/biome/recommended.json"]
+}
+```
+
 ## Environment Variables
 
 | Variable                    | Description                                                             |

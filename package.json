@@ -8,11 +8,13 @@
     ".": {
       "types": "./ts/index.ts",
       "default": "./ts/index.ts"
-    }
+    },
+    "./biome/recommended.json": "./biome/recommended.json"
   },
   "files": [
     "ts/**/*.ts",
     "!ts/**/*.test.ts",
+    "biome/",
     "example/",
     "LICENSE",
     "README.md"
