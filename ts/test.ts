@@ -17,8 +17,7 @@ interface TestOptions {
   timeout?: string;
 }
 
-const defaultTimeout = 60_000;
-setDefaultTimeout(defaultTimeout);
+setDefaultTimeout(60_000);
 
 type Callback = (scenario: Scenario) => Promise<unknown>;
 
@@ -98,12 +97,12 @@ function makeScenarioTest(runner: BunTestRunner): TestFunction {
 function convertTestOptions(
   options?: undefined | TestOptions
 ): undefined | BunTestOptions {
-  const timeout = options?.timeout
-    ? parseDuration(options.timeout).toMilliseconds()
-    : defaultTimeout;
+  if (!options?.timeout) {
+    return undefined;
+  }
   return {
     ...options,
-    timeout,
+    timeout: parseDuration(options.timeout).toMilliseconds(),
   };
 }
 
