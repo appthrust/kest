@@ -163,6 +163,8 @@ export interface KubectlDeleteOptions {
    * that does not exist succeeds silently instead of failing.
    */
   readonly ignoreNotFound?: undefined | boolean;
+  /** When false, adds --wait=false so delete returns immediately. */
+  readonly wait?: undefined | boolean;
   readonly context?: undefined | KubectlContext;
 }
 
@@ -303,6 +305,9 @@ export class RealKubectl implements Kubectl {
     const args: [string, ...Array<string>] = ["delete", `${resource}/${name}`];
     if (options?.ignoreNotFound) {
       args.push("--ignore-not-found");
+    }
+    if (options?.wait === false) {
+      args.push("--wait=false");
     }
     return await this.runKubectl({
       args,

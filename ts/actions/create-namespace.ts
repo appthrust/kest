@@ -1,5 +1,4 @@
 import { generateName } from "../naming";
-import { create } from "./create";
 import type { MutateDef } from "./types";
 
 /**
@@ -22,14 +21,20 @@ export const createNamespace = {
     ({ kubectl }) =>
     async (input) => {
       const name = resolveNamespaceName(input);
-      const { revert } = await create.mutate({ kubectl })({
+      await kubectl.create({
         apiVersion: "v1",
         kind: "Namespace",
-        metadata: {
-          name,
-        },
+        metadata: { name },
       });
-      return { revert, output: name };
+      return {
+        async revert() {
+          await kubectl.delete("Namespace", name, {
+            ignoreNotFound: true,
+            wait: false,
+          });
+        },
+        output: name,
+      };
     },
   describe: (input) => {
     if (input === undefined) {

@@ -1,10 +1,15 @@
 import { expect, test } from "bun:test";
 import type { K8sResource } from "../apis";
-import type { Kubectl } from "../kubectl";
+import type { Kubectl, KubectlDeleteOptions } from "../kubectl";
 import { createNamespace } from "./create-namespace";
 
 function makeKubectlRecorder(
-  onCreate: (resource: K8sResource) => void
+  onCreate: (resource: K8sResource) => void,
+  onDelete?: (
+    kind: string,
+    name: string,
+    options?: KubectlDeleteOptions
+  ) => void
 ): Kubectl {
   const kubectl: Kubectl = {
     extends: () => kubectl,
@@ -18,7 +23,10 @@ function makeKubectlRecorder(
     list: () => Promise.resolve(""),
     patch: () => Promise.resolve(""),
     label: () => Promise.resolve(""),
-    delete: () => Promise.resolve(""),
+    delete: (resource, name, options) => {
+      onDelete?.(resource, name, options);
+      return Promise.resolve("");
+    },
   };
   return kubectl;
 }
@@ -55,4 +63,30 @@ test("generates prefixed name when input has generateName", async () => {
 
   expect(name).toMatch(/^foo-[bcdfghjklmnpqrstvwxyz0-9]{5}$/);
   expect(created[0]?.metadata.name).toBe(name);
+});
+
+test("revert deletes namespace with wait: false", async () => {
+  const deleted: Array<{
+    kind: string;
+    name: string;
+    options?: undefined | KubectlDeleteOptions;
+  }> = [];
+  const kubectl = makeKubectlRecorder(
+    () => {
+      /* no-op */
+    },
+    (kind, name, options) => deleted.push({ kind, name, options })
+  );
+
+  const fn = createNamespace.mutate({ kubectl });
+  const { revert } = await fn("test-ns");
+
+  expect(deleted).toHaveLength(0);
+  await revert();
+  expect(deleted).toHaveLength(1);
+  expect(deleted[0]).toEqual({
+    kind: "Namespace",
+    name: "test-ns",
+    options: { ignoreNotFound: true, wait: false },
+  });
 });
