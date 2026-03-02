@@ -1,3 +1,5 @@
+import type { Duration } from "../../duration";
+
 export interface Report {
   scenarios: Array<Scenario>;
 }
@@ -8,6 +10,7 @@ export interface Scenario {
   details: Array<Tagged<"BDDSection", BDDSection> | Tagged<"Action", Action>>;
   cleanup: Array<CleanupItem>;
   cleanupSkipped?: boolean;
+  duration?: undefined | Duration;
 }
 
 type Tagged<Tag extends string, Target extends object> = Target & {
@@ -17,6 +20,7 @@ type Tagged<Tag extends string, Target extends object> = Target & {
 export interface OverviewItem {
   name: string;
   status: "pending" | "success" | "failure";
+  duration?: undefined | Duration;
 }
 
 export interface BDDSection {
@@ -30,6 +34,7 @@ export interface Action {
   attempts?: undefined | number;
   commands: Array<Command>;
   error?: undefined | Error;
+  duration?: undefined | Duration;
 }
 
 export interface Command {
@@ -55,6 +60,7 @@ export interface CleanupItem {
   resource?: undefined | string;
   status: "success" | "failure";
   command: CleanupCommand;
+  duration?: undefined | Duration;
 }
 
 export interface CleanupCommand {

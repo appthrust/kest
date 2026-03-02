@@ -15,7 +15,8 @@ test("skip() records RevertingsSkipped event without calling revert functions", 
 
   expect(revertCalled).toBe(false);
   const events = recorder.getEvents();
-  expect(events).toEqual([{ kind: "RevertingsSkipped", data: {} }]);
+  expect(events).toHaveLength(1);
+  expect(events[0]).toMatchObject({ kind: "RevertingsSkipped", data: {} });
 });
 
 test("revert() calls revert functions in LIFO order", async () => {

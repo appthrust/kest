@@ -1,0 +1,64 @@
+# timed scenario
+
+## Scenario Overview
+
+| # | Action | Status | Duration |
+|---|--------|--------|----------|
+| 1 | Apply Namespace `kest-abc12` | ✅ | 800ms |
+| 2 | Apply `ConfigMap` "my-config-1" | ✅ | 2.5s |
+
+## Scenario Details
+
+### Given: create Namespace
+
+**✅ Apply Namespace `kest-abc12`**
+
+```shell
+kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kest-abc12
+EOF
+```
+
+```text title="stdout"
+namespace/kest-abc12 created
+```
+
+### When: apply ConfigMap
+
+**✅ Apply `ConfigMap` "my-config-1"**
+
+```shell
+kubectl apply -f - <<EOF
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: my-config-1
+  namespace: kest-abc12
+data:
+  mode: demo
+EOF
+```
+
+```text title="stdout"
+configmap/my-config-1 created
+```
+
+### Cleanup
+
+| # | Action | Status | Duration |
+|---|--------|--------|----------|
+| 1 | Delete `ConfigMap` "my-config-1" | ✅ | 1.2s |
+| 2 | Delete Namespace `kest-abc12` | ✅ | 13.1s |
+
+```shellsession
+$ kubectl delete ConfigMap/my-config-1 -n kest-abc12
+configmap "my-config-1" deleted
+
+$ kubectl delete namespace/kest-abc12
+namespace "kest-abc12" deleted
+```
+
+**Total: 45.2s** (Actions: 3.3s, Cleanup: 14.3s)

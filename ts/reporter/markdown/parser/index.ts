@@ -1,3 +1,4 @@
+import { Duration } from "../../../duration";
 import type { Event } from "../../../recording";
 import type {
   Action,
@@ -30,6 +31,8 @@ interface ParseState {
   currentAction: Action | undefined;
   currentOverviewIndex: number | undefined;
   currentCleanup: CleanupItem | undefined;
+  currentActionStartTimestamp: number | undefined;
+  scenarioStartTimestamp: number | undefined;
 }
 
 export function parseEvents(events: ReadonlyArray<Event>): Report {
@@ -41,6 +44,8 @@ export function parseEvents(events: ReadonlyArray<Event>): Report {
     currentAction: undefined,
     currentOverviewIndex: undefined,
     currentCleanup: undefined,
+    currentActionStartTimestamp: undefined,
+    scenarioStartTimestamp: undefined,
   };
 
   for (const event of events) {
@@ -64,9 +69,19 @@ function handleNonBDDEvent(state: ParseState, event: Event): void {
     case "ScenarioStart":
       handleScenarioStart(state, event);
       return;
-    case "ScenarioEnd":
+    case "ScenarioEnd": {
+      if (state.currentScenario) {
+        const duration = computeDuration(
+          state.scenarioStartTimestamp,
+          event.timestamp
+        );
+        if (duration) {
+          state.currentScenario.duration = duration;
+        }
+      }
       clearScenarioProgressState(state);
       return;
+    }
     case "RevertingsStart":
       state.inCleanup = true;
       clearCurrentActionState(state);
@@ -109,6 +124,7 @@ function handleActionStart(
   state: ParseState,
   event: Extract<Event, { kind: "ActionStart" }>
 ): void {
+  state.currentActionStartTimestamp = event.timestamp;
   const scenario = ensureScenario(state.currentScenario, state.report);
   if (state.inCleanup) {
     const cleanup: CleanupItem = {
@@ -156,10 +172,17 @@ function applyRegularActionEnd(
     return;
   }
 
+  const duration = computeDuration(
+    state.currentActionStartTimestamp,
+    event.timestamp
+  );
+  currentAction.duration = duration;
+
   if (state.currentOverviewIndex !== undefined) {
     const overviewItem = currentScenario.overview[state.currentOverviewIndex];
     if (overviewItem) {
       overviewItem.status = event.data.ok ? "success" : "failure";
+      overviewItem.duration = duration;
     }
   }
 
@@ -177,6 +200,7 @@ function applyRegularActionEnd(
 
   state.currentAction = undefined;
   state.currentOverviewIndex = undefined;
+  state.currentActionStartTimestamp = undefined;
 }
 
 function handleCommandResult(
@@ -247,6 +271,7 @@ function handleScenarioStart(
   };
   state.report.scenarios.push(state.currentScenario);
   clearScenarioProgressState(state);
+  state.scenarioStartTimestamp = event.timestamp;
 }
 
 function handleActionEnd(
@@ -270,8 +295,16 @@ function handleCleanupActionEnd(
 
   if (state.currentCleanup) {
     state.currentCleanup.status = event.data.ok ? "success" : "failure";
+    const duration = computeDuration(
+      state.currentActionStartTimestamp,
+      event.timestamp
+    );
+    if (duration) {
+      state.currentCleanup.duration = duration;
+    }
   }
   state.currentCleanup = undefined;
+  state.currentActionStartTimestamp = undefined;
   return true;
 }
 
@@ -344,9 +377,24 @@ function ensureScenario(
   return created;
 }
 
+function computeDuration(
+  start: number | undefined,
+  end: number | undefined
+): Duration | undefined {
+  if (typeof start !== "number" || typeof end !== "number") {
+    return undefined;
+  }
+  const ms = end - start;
+  if (ms < 0 || !Number.isFinite(ms) || !Number.isInteger(ms)) {
+    return undefined;
+  }
+  return new Duration(ms);
+}
+
 function clearScenarioProgressState(state: ParseState): void {
   state.currentBDDSection = undefined;
   state.inCleanup = false;
+  state.scenarioStartTimestamp = undefined;
   clearCurrentActionState(state);
 }
 
@@ -354,6 +402,7 @@ function clearCurrentActionState(state: ParseState): void {
   state.currentAction = undefined;
   state.currentOverviewIndex = undefined;
   state.currentCleanup = undefined;
+  state.currentActionStartTimestamp = undefined;
 }
 
 function bddFromEvent(event: Event): BDDSection | undefined {

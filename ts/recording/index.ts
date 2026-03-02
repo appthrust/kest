@@ -87,13 +87,14 @@ interface BaseEvent<
 > {
   readonly kind: Kind;
   readonly data: Data;
+  readonly timestamp: number;
 }
 
 export class Recorder {
   private readonly events: Array<Event> = [];
 
   record<T extends Event>(kind: T["kind"], data: T["data"]) {
-    this.events.push({ kind, data } as T);
+    this.events.push({ kind, data, timestamp: Date.now() } as T);
   }
 
   getEvents(): Array<Event> {
