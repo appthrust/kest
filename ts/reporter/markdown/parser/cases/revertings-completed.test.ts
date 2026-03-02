@@ -1,3 +1,4 @@
+import { Duration } from "../../../../duration";
 import type { Event } from "../../../../recording";
 import type { Report } from "../../model";
 
@@ -18,11 +19,12 @@ actionEndError.stack =
 
 export const state = "revertings completed";
 export const events = [
-  { kind: "ScenarioStart", data: { name: "hello world" } },
-  { kind: "BDDGiven", data: { description: "create Namespace" } },
+  { kind: "ScenarioStart", data: { name: "hello world" }, timestamp: 0 },
+  { kind: "BDDGiven", data: { description: "create Namespace" }, timestamp: 0 },
   {
     kind: "ActionStart",
     data: { description: "Apply Namespace `kest-abc12`" },
+    timestamp: 0,
   },
   {
     kind: "CommandRun",
@@ -32,6 +34,7 @@ export const events = [
       stdin: "apiVersion: v1\nkind: Namespace\nmetadata: \n  name: kest-abc12",
       stdinLanguage: "yaml",
     },
+    timestamp: 0,
   },
   {
     kind: "CommandResult",
@@ -42,15 +45,18 @@ export const events = [
       stdoutLanguage: "text",
       stderrLanguage: "text",
     },
+    timestamp: 0,
   },
   {
     kind: "ActionEnd",
     data: { ok: true },
+    timestamp: 0,
   },
-  { kind: "BDDWhen", data: { description: "apply ConfigMap" } },
+  { kind: "BDDWhen", data: { description: "apply ConfigMap" }, timestamp: 0 },
   {
     kind: "ActionStart",
     data: { description: 'Apply `ConfigMap` "my-config-1"' },
+    timestamp: 0,
   },
   {
     kind: "CommandRun",
@@ -61,6 +67,7 @@ export const events = [
         "apiVersion: v1\nkind: ConfigMap\nmetadata: \n  name: my-config-1\n  namespace: kest-abc12\ndata: \n  mode: demo-1",
       stdinLanguage: "yaml",
     },
+    timestamp: 0,
   },
   {
     kind: "CommandResult",
@@ -71,15 +78,18 @@ export const events = [
       stdoutLanguage: "text",
       stderrLanguage: "text",
     },
+    timestamp: 0,
   },
   {
     kind: "ActionEnd",
     data: { ok: true },
+    timestamp: 0,
   },
-  { kind: "BDDThen", data: { description: "confirm ConfigMap" } },
+  { kind: "BDDThen", data: { description: "confirm ConfigMap" }, timestamp: 0 },
   {
     kind: "ActionStart",
     data: { description: 'Assert `ConfigMap` "my-config-1"' },
+    timestamp: 0,
   },
   {
     kind: "CommandRun",
@@ -87,6 +97,7 @@ export const events = [
       cmd: "kubectl",
       args: ["get", "ConfigMap/my-config-1", "-n", "kest-abc12", "-o", "yaml"],
     },
+    timestamp: 0,
   },
   {
     kind: "CommandResult",
@@ -98,8 +109,9 @@ export const events = [
       stdoutLanguage: "yaml",
       stderrLanguage: "text",
     },
+    timestamp: 0,
   },
-  { kind: "RetryStart", data: {} },
+  { kind: "RetryStart", data: {}, timestamp: 0 },
   {
     kind: "RetryEnd",
     data: {
@@ -108,6 +120,7 @@ export const events = [
       reason: "timeout",
       error: new Error("Timed out"),
     },
+    timestamp: 0,
   },
   {
     kind: "ActionEnd",
@@ -115,11 +128,13 @@ export const events = [
       ok: false,
       error: actionEndError,
     },
+    timestamp: 0,
   },
-  { kind: "RevertingsStart", data: {} },
+  { kind: "RevertingsStart", data: {}, timestamp: 0 },
   {
     kind: "ActionStart",
     data: { description: 'Delete `ConfigMap` "my-config-1"' },
+    timestamp: 0,
   },
   {
     kind: "CommandRun",
@@ -127,6 +142,7 @@ export const events = [
       cmd: "kubectl",
       args: ["delete", "ConfigMap/my-config-1", "-n", "kest-abc12"],
     },
+    timestamp: 0,
   },
   {
     kind: "CommandResult",
@@ -137,14 +153,17 @@ export const events = [
       stdoutLanguage: "text",
       stderrLanguage: "text",
     },
+    timestamp: 0,
   },
   {
     kind: "ActionEnd",
     data: { ok: true },
+    timestamp: 0,
   },
   {
     kind: "ActionStart",
     data: { description: "Delete Namespace `kest-abc12`" },
+    timestamp: 0,
   },
   {
     kind: "CommandRun",
@@ -152,6 +171,7 @@ export const events = [
       cmd: "kubectl",
       args: ["delete", "namespace/kest-abc12"],
     },
+    timestamp: 0,
   },
   {
     kind: "CommandResult",
@@ -162,12 +182,14 @@ export const events = [
       stdoutLanguage: "text",
       stderrLanguage: "text",
     },
+    timestamp: 0,
   },
   {
     kind: "ActionEnd",
     data: { ok: true },
+    timestamp: 0,
   },
-  { kind: "RevertingsEnd", data: {} },
+  { kind: "RevertingsEnd", data: {}, timestamp: 0 },
 ] satisfies ReadonlyArray<Event>;
 
 export const report = {
@@ -175,9 +197,21 @@ export const report = {
     {
       name: "hello world",
       overview: [
-        { name: "Apply Namespace `kest-abc12`", status: "success" },
-        { name: 'Apply `ConfigMap` "my-config-1"', status: "success" },
-        { name: 'Assert `ConfigMap` "my-config-1"', status: "failure" },
+        {
+          name: "Apply Namespace `kest-abc12`",
+          status: "success",
+          duration: new Duration(0),
+        },
+        {
+          name: 'Apply `ConfigMap` "my-config-1"',
+          status: "success",
+          duration: new Duration(0),
+        },
+        {
+          name: 'Assert `ConfigMap` "my-config-1"',
+          status: "failure",
+          duration: new Duration(0),
+        },
       ],
       details: [
         {
@@ -202,6 +236,7 @@ export const report = {
                   stderr: { text: "", language: "text" },
                 },
               ],
+              duration: new Duration(0),
             },
           ],
         },
@@ -227,6 +262,7 @@ export const report = {
                   stderr: { text: "", language: "text" },
                 },
               ],
+              duration: new Duration(0),
             },
           ],
         },
@@ -264,6 +300,7 @@ export const report = {
                 stack:
                   "Error: expect(received).toMatchObject(expected)\n    at Object.toMatchObject (example.test.ts:81:20)",
               },
+              duration: new Duration(0),
             },
           ],
         },
@@ -277,6 +314,7 @@ export const report = {
             args: ["delete", "ConfigMap/my-config-1", "-n", "kest-abc12"],
             output: 'configmap "my-config-1" deleted\n',
           },
+          duration: new Duration(0),
         },
         {
           action: "Delete Namespace `kest-abc12`",
@@ -286,6 +324,7 @@ export const report = {
             args: ["delete", "namespace/kest-abc12"],
             output: 'namespace "kest-abc12" deleted\n',
           },
+          duration: new Duration(0),
         },
       ],
     },

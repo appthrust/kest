@@ -3,8 +3,8 @@ import type { Report } from "../../model";
 
 export const state = "BDD section opened";
 export const events = [
-  { kind: "ScenarioStart", data: { name: "hello world" } },
-  { kind: "BDDGiven", data: { description: "create Namespace" } },
+  { kind: "ScenarioStart", data: { name: "hello world" }, timestamp: 0 },
+  { kind: "BDDGiven", data: { description: "create Namespace" }, timestamp: 0 },
 ] satisfies ReadonlyArray<Event>;
 
 export const report = {

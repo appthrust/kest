@@ -1,3 +1,4 @@
+import { Duration } from "../../../../duration";
 import type { Event } from "../../../../recording";
 import type { Report } from "../../model";
 
@@ -5,11 +6,12 @@ const actionEndError = new Error("expected value to match");
 
 export const state = "revertings skipped";
 export const events = [
-  { kind: "ScenarioStart", data: { name: "debug scenario" } },
-  { kind: "BDDGiven", data: { description: "create Namespace" } },
+  { kind: "ScenarioStart", data: { name: "debug scenario" }, timestamp: 0 },
+  { kind: "BDDGiven", data: { description: "create Namespace" }, timestamp: 0 },
   {
     kind: "ActionStart",
     data: { description: "Apply Namespace `kest-xyz99`" },
+    timestamp: 0,
   },
   {
     kind: "CommandRun",
@@ -19,6 +21,7 @@ export const events = [
       stdin: "apiVersion: v1\nkind: Namespace\nmetadata: \n  name: kest-xyz99",
       stdinLanguage: "yaml",
     },
+    timestamp: 0,
   },
   {
     kind: "CommandResult",
@@ -29,14 +32,16 @@ export const events = [
       stdoutLanguage: "text",
       stderrLanguage: "text",
     },
+    timestamp: 0,
   },
-  { kind: "ActionEnd", data: { ok: true } },
-  { kind: "BDDThen", data: { description: "assert something" } },
+  { kind: "ActionEnd", data: { ok: true }, timestamp: 0 },
+  { kind: "BDDThen", data: { description: "assert something" }, timestamp: 0 },
   {
     kind: "ActionStart",
     data: { description: 'Assert `ConfigMap` "my-config"' },
+    timestamp: 0,
   },
-  { kind: "RetryStart", data: {} },
+  { kind: "RetryStart", data: {}, timestamp: 0 },
   {
     kind: "RetryEnd",
     data: {
@@ -45,6 +50,7 @@ export const events = [
       reason: "timeout",
       error: new Error("Timed out"),
     },
+    timestamp: 0,
   },
   {
     kind: "ActionEnd",
@@ -52,9 +58,10 @@ export const events = [
       ok: false,
       error: actionEndError,
     },
+    timestamp: 0,
   },
-  { kind: "RevertingsSkipped", data: {} },
-  { kind: "ScenarioEnd", data: {} },
+  { kind: "RevertingsSkipped", data: {}, timestamp: 0 },
+  { kind: "ScenarioEnd", data: {}, timestamp: 0 },
 ] satisfies ReadonlyArray<Event>;
 
 export const report = {
@@ -62,8 +69,16 @@ export const report = {
     {
       name: "debug scenario",
       overview: [
-        { name: "Apply Namespace `kest-xyz99`", status: "success" },
-        { name: 'Assert `ConfigMap` "my-config"', status: "failure" },
+        {
+          name: "Apply Namespace `kest-xyz99`",
+          status: "success",
+          duration: new Duration(0),
+        },
+        {
+          name: 'Assert `ConfigMap` "my-config"',
+          status: "failure",
+          duration: new Duration(0),
+        },
       ],
       details: [
         {
@@ -88,6 +103,7 @@ export const report = {
                   stderr: { text: "", language: "text" },
                 },
               ],
+              duration: new Duration(0),
             },
           ],
         },
@@ -107,12 +123,14 @@ export const report = {
                 },
                 stack: actionEndError.stack,
               },
+              duration: new Duration(0),
             },
           ],
         },
       ],
       cleanup: [],
       cleanupSkipped: true,
+      duration: new Duration(0),
     },
   ],
 } satisfies Report;

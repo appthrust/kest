@@ -1,19 +1,22 @@
+import { Duration } from "../../../../duration";
 import type { Event } from "../../../../recording";
 import type { Report } from "../../model";
 
 export const state =
   "retry collapses commands to last attempt (multiple commands per attempt)";
 export const events = [
-  { kind: "ScenarioStart", data: { name: "hello world" } },
+  { kind: "ScenarioStart", data: { name: "hello world" }, timestamp: 0 },
   {
     kind: "BDDThen",
     data: { description: "the update should be rejected" },
+    timestamp: 0,
   },
   {
     kind: "ActionStart",
     data: {
       description: 'Apply `ClusterDeployment` "my-cd" (expected error)',
     },
+    timestamp: 0,
   },
   // Initial attempt: apply succeeds (unexpected) → revert
   {
@@ -25,6 +28,7 @@ export const events = [
         "apiVersion: cluster.example.com/v1\nkind: ClusterDeployment\nmetadata: \n  name: my-cd",
       stdinLanguage: "yaml",
     },
+    timestamp: 0,
   },
   {
     kind: "CommandResult",
@@ -35,6 +39,7 @@ export const events = [
       stdoutLanguage: "text",
       stderrLanguage: "text",
     },
+    timestamp: 0,
   },
   {
     kind: "CommandRun",
@@ -42,6 +47,7 @@ export const events = [
       cmd: "kubectl",
       args: ["delete", "ClusterDeployment/my-cd", "--ignore-not-found"],
     },
+    timestamp: 0,
   },
   {
     kind: "CommandResult",
@@ -52,10 +58,11 @@ export const events = [
       stdoutLanguage: "text",
       stderrLanguage: "text",
     },
+    timestamp: 0,
   },
-  { kind: "RetryStart", data: {} },
+  { kind: "RetryStart", data: {}, timestamp: 0 },
   // Retry 1: same pattern — apply succeeds (unexpected) → revert
-  { kind: "RetryAttempt", data: { attempt: 1 } },
+  { kind: "RetryAttempt", data: { attempt: 1 }, timestamp: 0 },
   {
     kind: "CommandRun",
     data: {
@@ -65,6 +72,7 @@ export const events = [
         "apiVersion: cluster.example.com/v1\nkind: ClusterDeployment\nmetadata: \n  name: my-cd",
       stdinLanguage: "yaml",
     },
+    timestamp: 0,
   },
   {
     kind: "CommandResult",
@@ -75,6 +83,7 @@ export const events = [
       stdoutLanguage: "text",
       stderrLanguage: "text",
     },
+    timestamp: 0,
   },
   {
     kind: "CommandRun",
@@ -82,6 +91,7 @@ export const events = [
       cmd: "kubectl",
       args: ["delete", "ClusterDeployment/my-cd", "--ignore-not-found"],
     },
+    timestamp: 0,
   },
   {
     kind: "CommandResult",
@@ -92,9 +102,10 @@ export const events = [
       stdoutLanguage: "text",
       stderrLanguage: "text",
     },
+    timestamp: 0,
   },
   // Retry 2 (last): apply is rejected as expected — only this survives
-  { kind: "RetryAttempt", data: { attempt: 2 } },
+  { kind: "RetryAttempt", data: { attempt: 2 }, timestamp: 0 },
   {
     kind: "CommandRun",
     data: {
@@ -104,6 +115,7 @@ export const events = [
         "apiVersion: cluster.example.com/v1\nkind: ClusterDeployment\nmetadata: \n  name: my-cd",
       stdinLanguage: "yaml",
     },
+    timestamp: 0,
   },
   {
     kind: "CommandResult",
@@ -115,12 +127,14 @@ export const events = [
       stdoutLanguage: "text",
       stderrLanguage: "text",
     },
+    timestamp: 0,
   },
   {
     kind: "RetryEnd",
     data: { attempts: 2, success: true, reason: "success" },
+    timestamp: 0,
   },
-  { kind: "ActionEnd", data: { ok: true } },
+  { kind: "ActionEnd", data: { ok: true }, timestamp: 0 },
 ] satisfies ReadonlyArray<Event>;
 
 export const report = {
@@ -131,6 +145,7 @@ export const report = {
         {
           name: 'Apply `ClusterDeployment` "my-cd" (expected error)',
           status: "success",
+          duration: new Duration(0),
         },
       ],
       details: [
@@ -157,6 +172,7 @@ export const report = {
                   },
                 },
               ],
+              duration: new Duration(0),
             },
           ],
         },

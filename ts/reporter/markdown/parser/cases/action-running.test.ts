@@ -3,11 +3,12 @@ import type { Report } from "../../model";
 
 export const state = "action running";
 export const events = [
-  { kind: "ScenarioStart", data: { name: "hello world" } },
-  { kind: "BDDGiven", data: { description: "create Namespace" } },
+  { kind: "ScenarioStart", data: { name: "hello world" }, timestamp: 0 },
+  { kind: "BDDGiven", data: { description: "create Namespace" }, timestamp: 0 },
   {
     kind: "ActionStart",
     data: { description: "Apply Namespace `kest-abc12`" },
+    timestamp: 0,
   },
 ] satisfies ReadonlyArray<Event>;
 

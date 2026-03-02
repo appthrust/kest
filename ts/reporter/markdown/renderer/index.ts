@@ -1,3 +1,4 @@
+import { Duration } from "../../../duration";
 import { codeToANSIForcedColors } from "../../shiki";
 import type { MarkdownReporterOptions } from "../index";
 import type { Action, Report } from "../model";
@@ -174,14 +175,26 @@ export async function renderReport(
     lines.push("");
 
     // Overview
+    const overviewHasDuration = scenario.overview.some((o) => o.duration);
     lines.push("## Scenario Overview");
     lines.push("");
-    lines.push("| # | Action | Status |");
-    lines.push("|---|--------|--------|");
+    if (overviewHasDuration) {
+      lines.push("| # | Action | Status | Duration |");
+      lines.push("|---|--------|--------|----------|");
+    } else {
+      lines.push("| # | Action | Status |");
+      lines.push("|---|--------|--------|");
+    }
     for (const [i, item] of scenario.overview.entries()) {
-      lines.push(
-        `| ${i + 1} | ${stripAnsi(item.name)} | ${statusEmoji(item.status)} |`
-      );
+      if (overviewHasDuration) {
+        lines.push(
+          `| ${i + 1} | ${stripAnsi(item.name)} | ${statusEmoji(item.status)} | ${item.duration?.toString() ?? ""} |`
+        );
+      } else {
+        lines.push(
+          `| ${i + 1} | ${stripAnsi(item.name)} | ${statusEmoji(item.status)} |`
+        );
+      }
     }
     lines.push("");
 
@@ -308,14 +321,26 @@ export async function renderReport(
         "To clean up manually, run the revert commands from a passing test run."
       );
     } else if (scenario.cleanup.length > 0) {
+      const cleanupHasDuration = scenario.cleanup.some((c) => c.duration);
       lines.push("### Cleanup");
       lines.push("");
-      lines.push("| # | Action | Status |");
-      lines.push("|---|--------|--------|");
+      if (cleanupHasDuration) {
+        lines.push("| # | Action | Status | Duration |");
+        lines.push("|---|--------|--------|----------|");
+      } else {
+        lines.push("| # | Action | Status |");
+        lines.push("|---|--------|--------|");
+      }
       for (const [i, item] of scenario.cleanup.entries()) {
-        lines.push(
-          `| ${i + 1} | ${stripAnsi(item.action)} | ${item.status === "success" ? "✅" : "❌"} |`
-        );
+        if (cleanupHasDuration) {
+          lines.push(
+            `| ${i + 1} | ${stripAnsi(item.action)} | ${item.status === "success" ? "✅" : "❌"} | ${item.duration?.toString() ?? ""} |`
+          );
+        } else {
+          lines.push(
+            `| ${i + 1} | ${stripAnsi(item.action)} | ${item.status === "success" ? "✅" : "❌"} |`
+          );
+        }
       }
       lines.push("");
 
@@ -332,6 +357,33 @@ export async function renderReport(
         }
       }
       lines.push("```");
+    }
+
+    // Total duration summary
+    if (scenario.duration) {
+      lines.push("");
+      const actionsDurationMs = scenario.overview.reduce(
+        (sum, o) => sum + (o.duration?.milliseconds ?? 0),
+        0
+      );
+      const cleanupDurationMs = scenario.cleanup.reduce(
+        (sum, c) => sum + (c.duration?.milliseconds ?? 0),
+        0
+      );
+      const parts: Array<string> = [];
+      if (actionsDurationMs > 0) {
+        parts.push(`Actions: ${new Duration(actionsDurationMs).toString()}`);
+      }
+      if (cleanupDurationMs > 0) {
+        parts.push(`Cleanup: ${new Duration(cleanupDurationMs).toString()}`);
+      }
+      if (parts.length > 0) {
+        lines.push(
+          `**Total: ${scenario.duration.toString()}** (${parts.join(", ")})`
+        );
+      } else {
+        lines.push(`**Total: ${scenario.duration.toString()}**`);
+      }
     }
 
     renderedScenarios.push(lines.join("\n"));
