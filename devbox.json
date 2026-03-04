@@ -1,6 +1,13 @@
 {
   "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.16.0/.schema/devbox.schema.json",
-  "packages": ["kind@latest", "kubectl@latest", "bun@latest", "go-task@latest"],
+  "packages": [
+    "kind@latest",
+    "kubectl@latest",
+    "bun@latest",
+    "go-task@latest",
+    "clusterctl@1.12.2",
+    "cloud-provider-kind@0.10.0"
+  ],
   "shell": {
     "init_hook": ["echo 'Welcome to devbox!' > /dev/null"],
     "scripts": {

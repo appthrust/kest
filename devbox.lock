@@ -49,6 +49,102 @@
         }
       }
     },
+    "cloud-provider-kind@0.10.0": {
+      "last_modified": "2026-02-23T15:40:43Z",
+      "resolved": "github:NixOS/nixpkgs/80d901ec0377e19ac3f7bb8c035201e2e098cc97#cloud-provider-kind",
+      "source": "devbox-search",
+      "version": "0.10.0",
+      "systems": {
+        "aarch64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/3mz96pl9xj8v529dhj5by48dprhfa0ci-cloud-provider-kind-0.10.0",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/3mz96pl9xj8v529dhj5by48dprhfa0ci-cloud-provider-kind-0.10.0"
+        },
+        "aarch64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/vhk6g6cmy0prkzk6f9lni1wr44794nvy-cloud-provider-kind-0.10.0",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/vhk6g6cmy0prkzk6f9lni1wr44794nvy-cloud-provider-kind-0.10.0"
+        },
+        "x86_64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/kbqv8v2vg1nynpypz31yxmkdi47wcjfv-cloud-provider-kind-0.10.0",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/kbqv8v2vg1nynpypz31yxmkdi47wcjfv-cloud-provider-kind-0.10.0"
+        },
+        "x86_64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/ai5vlzxxbar6hjkb92v2bmmwzh7f1dkw-cloud-provider-kind-0.10.0",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/ai5vlzxxbar6hjkb92v2bmmwzh7f1dkw-cloud-provider-kind-0.10.0"
+        }
+      }
+    },
+    "clusterctl@1.12.2": {
+      "last_modified": "2026-02-23T15:40:43Z",
+      "resolved": "github:NixOS/nixpkgs/80d901ec0377e19ac3f7bb8c035201e2e098cc97#clusterctl",
+      "source": "devbox-search",
+      "version": "1.12.2",
+      "systems": {
+        "aarch64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/778jxvqkkq2417wf7khzfwm3w1w9z4n1-clusterctl-1.12.2",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/778jxvqkkq2417wf7khzfwm3w1w9z4n1-clusterctl-1.12.2"
+        },
+        "aarch64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/8dkagw89sav6kk19sfbvpjqa0il0pw6l-clusterctl-1.12.2",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/8dkagw89sav6kk19sfbvpjqa0il0pw6l-clusterctl-1.12.2"
+        },
+        "x86_64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/8844gbxh2cfkpgszmnwhxplm43pg7z1r-clusterctl-1.12.2",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/8844gbxh2cfkpgszmnwhxplm43pg7z1r-clusterctl-1.12.2"
+        },
+        "x86_64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/b9sid26w0lnafiyzxpyxcink9crcvzh6-clusterctl-1.12.2",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/b9sid26w0lnafiyzxpyxcink9crcvzh6-clusterctl-1.12.2"
+        }
+      }
+    },
     "github:NixOS/nixpkgs/nixpkgs-unstable": {
       "last_modified": "2026-01-02T14:39:32Z",
       "resolved": "github:NixOS/nixpkgs/16c7794d0a28b5a37904d55bcca36003b9109aaa?lastModified=1767364772&narHash=sha256-fFUnEYMla8b7UKjijLnMe%2BoVFOz6HjijGGNS1l7dYaQ%3D"

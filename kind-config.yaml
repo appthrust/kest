@@ -1,0 +1,36 @@
+# Kind cluster configuration for Cluster API (CAPI) with k0smotron and CAPD (Docker provider).
+#
+# This cluster serves as the CAPI "management cluster" that hosts controllers and
+# child cluster control planes. Two customizations are required beyond a default kind cluster:
+#
+# 1. Docker socket mount (/var/run/docker.sock)
+#    CAPD (Cluster API Provider Docker) needs access to the host's Docker daemon to create
+#    and manage Docker containers that act as worker nodes for child clusters. Without this
+#    mount, CAPD cannot provision any infrastructure.
+#
+# 2. Extra port mappings (30443, 30132)
+#    k0smotron runs child cluster control planes as pods inside this management cluster and
+#    exposes them via NodePort services. These port mappings forward traffic from the macOS
+#    host (localhost) into the kind node so that kubectl on the host can reach child cluster
+#    API servers.
+#      - 30443: Kubernetes API server of the child cluster
+#      - 30132: Konnectivity tunnel (bidirectional communication between the hosted control
+#               plane and worker nodes)
+#
+# See also: docs/knowledge/capi-k0smotron-setup.md
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+networking:
+  ipFamily: ipv4
+nodes:
+  - role: control-plane
+    extraMounts:
+      - hostPath: /var/run/docker.sock
+        containerPath: /var/run/docker.sock
+    extraPortMappings:
+      - containerPort: 30443
+        hostPort: 30443
+        protocol: TCP
+      - containerPort: 30132
+        hostPort: 30132
+        protocol: TCP

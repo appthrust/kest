@@ -20,6 +20,7 @@ function makeKubectl(overrides?: Partial<Kubectl>): Kubectl {
     patch: () => Promise.resolve(""),
     label: () => Promise.resolve(""),
     delete: () => Promise.resolve(""),
+    getSecretData: () => Promise.resolve(""),
     ...overrides,
   };
   return kubectl;

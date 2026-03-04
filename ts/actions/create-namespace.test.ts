@@ -27,6 +27,7 @@ function makeKubectlRecorder(
       onDelete?.(resource, name, options);
       return Promise.resolve("");
     },
+    getSecretData: () => Promise.resolve(""),
   };
   return kubectl;
 }
