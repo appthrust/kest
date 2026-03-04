@@ -155,6 +155,26 @@ export interface Kubectl {
     labels: Readonly<Record<string, string | null>>,
     options?: KubectlLabelOptions
   ): Promise<string>;
+
+  /**
+   * Retrieves and base64-decodes a single key from a Kubernetes Secret.
+   *
+   * Runs: `kubectl get secret <name> -o jsonpath='{.data.<key>}'`
+   *
+   * The raw secret value is **not** recorded; the recorded stdout is replaced
+   * with `"<redacted>"` to avoid leaking sensitive data into reports/logs.
+   *
+   * @param name - The name of the Secret resource
+   * @param key - The data key to retrieve (e.g., "password", "kubeconfig")
+   * @param context - Optional context overrides for this call
+   * @returns The base64-decoded value of the requested key
+   * @throws Error if kubectl exits with non-zero code
+   */
+  getSecretData(
+    name: string,
+    key: string,
+    context?: KubectlContext
+  ): Promise<string>;
 }
 
 export interface KubectlDeleteOptions {
@@ -317,6 +337,21 @@ export class RealKubectl implements Kubectl {
     });
   }
 
+  async getSecretData(
+    name: string,
+    key: string,
+    context?: KubectlContext
+  ): Promise<string> {
+    const stdout = await this.runKubectl({
+      args: ["get", "secret", name, "-o", `jsonpath={.data.${key}}`],
+      stdoutLanguage: "text",
+      stderrLanguage: "text",
+      overrideContext: context,
+      redactStdout: true,
+    });
+    return Buffer.from(stdout, "base64").toString("utf-8");
+  }
+
   async label(
     resource: string,
     name: string,
@@ -377,7 +412,7 @@ export class RealKubectl implements Kubectl {
     };
     this.recorder.record("CommandResult", {
       exitCode,
-      stdout,
+      stdout: params.redactStdout ? "<redacted>" : stdout,
       stderr,
       stdoutLanguage: params.stdoutLanguage,
       stderrLanguage: params.stderrLanguage,
@@ -406,6 +441,7 @@ interface ExecParams {
   readonly stdoutLanguage?: undefined | string;
   readonly stderrLanguage?: undefined | string;
   readonly overrideContext?: undefined | KubectlContext;
+  readonly redactStdout?: undefined | boolean;
 }
 
 function stringifyPatch(patch: KubectlPatch): string {

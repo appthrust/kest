@@ -21,6 +21,7 @@ function makeKubectlReturningList(yaml: string): Kubectl {
     patch: async () => "",
     delete: async () => "",
     label: async () => "",
+    getSecretData: async () => "",
   };
   return kubectl;
 }
@@ -40,6 +41,7 @@ function makeKubectlCapturingListContext(
       return Promise.resolve(yaml);
     },
     patch: async () => "",
+    getSecretData: async () => "",
     delete: async () => "",
     label: async () => "",
   };

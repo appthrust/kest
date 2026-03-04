@@ -87,6 +87,10 @@ class FakeKubectl implements Kubectl {
   ): Promise<string> {
     return Promise.resolve("");
   }
+
+  getSecretData(): Promise<string> {
+    return Promise.resolve("");
+  }
 }
 
 const noopReporter: Reporter = {

@@ -58,6 +58,10 @@ class FakeKubectl implements Kubectl {
     this.calls.push(call);
     return Promise.resolve("");
   }
+
+  getSecretData(): Promise<string> {
+    return Promise.resolve("");
+  }
 }
 
 const noopReporter: Reporter = {

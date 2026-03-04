@@ -518,10 +518,12 @@ export interface Scenario {
    * The returned {@link Cluster} uses the provided kubeconfig/context for all
    * actions. It does not create any resources by itself.
    *
-   * @param cluster - Target kubeconfig and/or context.
+   * @param cluster - Target cluster reference (static kubeconfig/context or CAPI resource).
+   * @param options - Retry options such as timeout and polling interval.
    *
    * @example
    * ```ts
+   * // Static cluster reference
    * const c = await s.useCluster({ context: "kind-kind" });
    * const ns = await c.newNamespace("my-ns");
    * await ns.apply({
@@ -531,8 +533,22 @@ export interface Scenario {
    *   data: { mode: "cluster" },
    * });
    * ```
+   *
+   * @example
+   * ```ts
+   * // CAPI cluster resource reference
+   * const c = await s.useCluster({
+   *   apiVersion: "cluster.x-k8s.io/v1beta1",
+   *   kind: "Cluster",
+   *   name: "workload-1",
+   *   namespace: "default",
+   * });
+   * ```
    */
-  useCluster(cluster: ClusterReference): Promise<Cluster>;
+  useCluster(
+    cluster: ClusterReference,
+    options?: undefined | ActionOptions
+  ): Promise<Cluster>;
 
   // BDD(behavior-driven development) actions
 
@@ -879,6 +895,35 @@ export interface Cluster {
     name?: undefined | string | { readonly generateName: string },
     options?: undefined | ActionOptions
   ): Promise<Namespace>;
+
+  // Multi-cluster actions
+
+  /**
+   * Creates a cluster-bound API surface from this cluster.
+   *
+   * This enables multi-hop cluster access — for example, using a management
+   * cluster to reach a CAPI-provisioned workload cluster.
+   *
+   * @param cluster - Target cluster reference (static or CAPI resource).
+   * @param options - Retry options such as timeout and polling interval.
+   *
+   * @example
+   * ```ts
+   * // From a management cluster, obtain a workload cluster handle
+   * const mgmt = await s.useCluster({ context: "kind-mgmt" });
+   * const workload = await mgmt.useCluster({
+   *   apiVersion: "cluster.x-k8s.io/v1beta1",
+   *   kind: "Cluster",
+   *   name: "workload-1",
+   *   namespace: "default",
+   * });
+   * const ns = await workload.newNamespace("test");
+   * ```
+   */
+  useCluster(
+    cluster: ClusterReference,
+    options?: undefined | ActionOptions
+  ): Promise<Cluster>;
 }
 
 /**
@@ -1483,9 +1528,14 @@ export interface AssertCreateErrorInput<T extends K8sResource = K8sResource> {
 }
 
 /**
- * Kubernetes cluster selector for {@link Scenario.useCluster}.
+ * Static cluster selector that points to an existing kubeconfig/context.
+ *
+ * Use this when the cluster is already provisioned and you have direct access
+ * to its kubeconfig file or context name.
+ *
+ * @see {@link ClusterReference} — the union accepted by {@link Scenario.useCluster}.
  */
-export interface ClusterReference {
+export interface StaticClusterReference {
   /**
    * Path to a kubeconfig file to use for this cluster.
    */
@@ -1496,6 +1546,63 @@ export interface ClusterReference {
    */
   readonly context?: undefined | string;
 }
+
+/**
+ * Supported Cluster API versions for CAPI-provisioned clusters.
+ */
+export type CapiClusterApiVersion =
+  | "cluster.x-k8s.io/v1beta1"
+  | "cluster.x-k8s.io/v1beta2";
+
+/**
+ * Reference to a CAPI-provisioned cluster resource.
+ *
+ * Kest resolves the cluster's kubeconfig by reading the corresponding
+ * `<name>-kubeconfig` Secret from the management cluster and passes it to
+ * kubectl automatically.
+ *
+ * @example
+ * ```ts
+ * const c = await s.useCluster({
+ *   apiVersion: "cluster.x-k8s.io/v1beta1",
+ *   kind: "Cluster",
+ *   name: "workload-1",
+ *   namespace: "default",
+ * });
+ * ```
+ */
+export interface CapiClusterResourceReference {
+  /** Cluster API group version. */
+  readonly apiVersion: CapiClusterApiVersion;
+
+  /** Must be `"Cluster"`. */
+  readonly kind: "Cluster";
+
+  /** Name of the CAPI Cluster resource. */
+  readonly name: string;
+
+  /** Namespace where the CAPI Cluster resource lives. */
+  readonly namespace: string;
+}
+
+/**
+ * Union of cluster resource reference types.
+ *
+ * Currently only CAPI clusters are supported, but this alias leaves room for
+ * additional providers in the future.
+ */
+export type ClusterResourceReference = CapiClusterResourceReference;
+
+/**
+ * Kubernetes cluster selector for {@link Scenario.useCluster} and
+ * {@link Cluster.useCluster}.
+ *
+ * - {@link StaticClusterReference} — points to an existing kubeconfig/context.
+ * - {@link ClusterResourceReference} — references a CAPI Cluster resource.
+ */
+export type ClusterReference =
+  | StaticClusterReference
+  | ClusterResourceReference;
 
 /**
  * A Kubernetes manifest accepted by Kest actions.

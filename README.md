@@ -185,6 +185,52 @@ test("resources sync across clusters", async (s) => {
 });
 ```
 
+#### CAPI Dynamic Clusters
+
+Kest can resolve [Cluster API](https://cluster-api.sigs.k8s.io/) (CAPI) provisioned clusters automatically. Pass a `ClusterResourceReference` to `useCluster` and Kest will:
+
+1. Poll the CAPI `Cluster` resource until it reports ready
+2. Fetch the kubeconfig from the `<name>-kubeconfig` Secret (data key `value`)
+3. Write a temporary kubeconfig file and bind kubectl to it
+4. Register cleanup to delete the temp file when the test ends
+
+```ts
+test("CAPI multi-hop: management → child → workload", async (s) => {
+  // 1. Connect to the permanent management cluster
+  const pmc = await s.useCluster({ context: "kind-pmc" });
+
+  // 2. Wait for the child cluster to become ready, then connect
+  const cc = await pmc.useCluster({
+    apiVersion: "cluster.x-k8s.io/v1beta1",
+    kind: "Cluster",
+    name: "child-cluster",
+    namespace: "capi-system",
+  });
+
+  // 3. Chain further — the child cluster manages a workload cluster
+  const wlc = await cc.useCluster({
+    apiVersion: "cluster.x-k8s.io/v1beta1",
+    kind: "Cluster",
+    name: "workload-cluster",
+    namespace: "default",
+  });
+
+  const ns = await wlc.newNamespace();
+  await ns.apply(/* ... */);
+});
+```
+
+**Readiness conditions:**
+
+| API version                     | Condition type |
+| ------------------------------- | -------------- |
+| `cluster.x-k8s.io/v1beta1`     | `Ready`        |
+| `cluster.x-k8s.io/v1beta2`     | `Available`    |
+
+**Secret convention:** Kest reads the kubeconfig from a Secret named `${clusterName}-kubeconfig` with the data key `value`. This follows the default CAPI convention. Your RBAC must grant `get` on Secrets in the namespace where the Cluster resource lives.
+
+**Temp kubeconfig cleanup:** The temporary kubeconfig file is deleted automatically during test cleanup. Set `KEST_PRESERVE_ON_FAILURE=1` to skip cleanup on failure, which keeps the temp file for debugging.
+
 ### Status Subresource Support
 
 Simulate controller behavior by applying status subresources via server-side apply:
@@ -535,12 +581,12 @@ The top-level API surface available in every test callback.
 | `newNamespace(name?, options?)`                                         | Create an ephemeral namespace (supports `{ generateName }`) |
 | `generateName(prefix)`                                                  | Generate a random-suffix name (statistical uniqueness)      |
 | `exec(input, options?)`                                                 | Execute shell commands with optional revert                 |
-| `useCluster(ref)`                                                       | Create a cluster-bound API surface                          |
+| `useCluster(ref, options?)`                                             | Create a cluster-bound API surface                          |
 | `given(desc)` / `when(desc)` / `then(desc)` / `and(desc)` / `but(desc)` | BDD annotations for reporting                               |
 
 ### Namespace / Cluster
 
-Returned by `newNamespace()` and `useCluster()` respectively. They expose the same core methods (`apply`, `create`, `assertApplyError`, `assertCreateError`, `applyStatus`, `delete`, `label`, `get`, `assert`, `assertAbsence`, `assertList`, `assertOne`) scoped to their namespace or cluster context. `Cluster` additionally supports `newNamespace`.
+Returned by `newNamespace()` and `useCluster()` respectively. They expose the same core methods (`apply`, `create`, `assertApplyError`, `assertCreateError`, `applyStatus`, `delete`, `label`, `get`, `assert`, `assertAbsence`, `assertList`, `assertOne`) scoped to their namespace or cluster context. `Cluster` additionally supports `newNamespace` and `useCluster`.
 
 `Namespace` also exposes a `name` property:
 

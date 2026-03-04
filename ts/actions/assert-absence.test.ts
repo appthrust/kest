@@ -32,6 +32,7 @@ function makeKubectl(
     patch: async () => "",
     delete: async () => "",
     label: async () => "",
+    getSecretData: async () => "",
   };
   return kubectl;
 }

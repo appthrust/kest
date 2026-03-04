@@ -30,6 +30,7 @@ import type { Recorder } from "../recording";
 import type { Reporter } from "../reporter/interface";
 import { retryUntil } from "../retry";
 import type { Reverting } from "../reverting";
+import { resolveCluster } from "./use-cluster";
 
 export interface InternalScenario extends Scenario {
   cleanup(options?: { skip?: boolean }): Promise<void>;
@@ -74,7 +75,7 @@ export function createScenario(deps: CreateScenarioOptions): InternalScenario {
   };
 }
 
-interface CreateScenarioOptions {
+export interface CreateScenarioOptions {
   readonly name: string;
   readonly recorder: Recorder;
   readonly kubectl: Kubectl;
@@ -82,7 +83,7 @@ interface CreateScenarioOptions {
   readonly reporter: Reporter;
 }
 
-const createMutateFn =
+export const createMutateFn =
   <
     const Action extends MutateDef<Input, Output>,
     Input = Action extends MutateDef<infer I, infer _> ? I : never,
@@ -134,7 +135,7 @@ const createMutateFn =
     }
   };
 
-const createOneWayMutateFn =
+export const createOneWayMutateFn =
   <
     const Action extends OneWayMutateDef<Input, Output>,
     Input = Action extends OneWayMutateDef<infer I, infer _> ? I : never,
@@ -165,7 +166,7 @@ const createOneWayMutateFn =
     }
   };
 
-const createQueryFn =
+export const createQueryFn =
   <
     const Action extends QueryDef<Input, Output>,
     Input = Action extends QueryDef<infer I, infer _> ? I : never,
@@ -196,7 +197,7 @@ const createQueryFn =
     }
   };
 
-const createNewNamespaceFn =
+export const createNewNamespaceFn =
   (scenarioDeps: CreateScenarioOptions) =>
   async (
     name?: CreateNamespaceInput,
@@ -228,27 +229,6 @@ const createNewNamespaceFn =
 
 const createUseClusterFn =
   (scenarioDeps: CreateScenarioOptions) =>
-  // biome-ignore lint/suspicious/useAwait: 将来的にクラスターの接続確認などを行うため、今から async を使用する
-  async (cluster: ClusterReference): Promise<Cluster> => {
-    const { kubectl } = scenarioDeps;
-    const clusterKubectl = kubectl.extends({
-      context: cluster.context,
-      kubeconfig: cluster.kubeconfig,
-    });
-    const clusterDeps = { ...scenarioDeps, kubectl: clusterKubectl };
-    return {
-      apply: createMutateFn(clusterDeps, apply),
-      create: createMutateFn(clusterDeps, create),
-      assertApplyError: createMutateFn(clusterDeps, assertApplyError),
-      assertCreateError: createMutateFn(clusterDeps, assertCreateError),
-      applyStatus: createOneWayMutateFn(clusterDeps, applyStatus),
-      delete: createOneWayMutateFn(clusterDeps, deleteResource),
-      label: createOneWayMutateFn(clusterDeps, label),
-      get: createQueryFn(clusterDeps, get),
-      assert: createQueryFn(clusterDeps, assert),
-      assertAbsence: createQueryFn(clusterDeps, assertAbsence),
-      assertList: createQueryFn(clusterDeps, assertList),
-      assertOne: createQueryFn(clusterDeps, assertOne),
-      newNamespace: createNewNamespaceFn(clusterDeps),
-    };
+  (cluster: ClusterReference, options?: ActionOptions): Promise<Cluster> => {
+    return resolveCluster(scenarioDeps, cluster, options);
   };

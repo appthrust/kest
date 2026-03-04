@@ -9,10 +9,19 @@ vars:
 tasks:
   up:
     cmds:
-      - kind create cluster --name {{.CLUSTER_NAME}}-cluster-1
+      - kind create cluster --name {{.CLUSTER_NAME}}-cluster-1 --config kind-config.yaml
       - kind create cluster --name {{.CLUSTER_NAME}}-cluster-2
       - kind create cluster --name {{.CLUSTER_NAME}}-cluster-3
       - kubectl config use-context kind-{{.CLUSTER_NAME}}-cluster-1
+      - task: capi:install
+
+  capi:install:
+    desc: Install Cluster API with k0smotron on cluster-1
+    vars:
+      CONTEXT: kind-{{.CLUSTER_NAME}}-cluster-1
+    cmds:
+      - clusterctl init --kubeconfig-context {{.CONTEXT}} --bootstrap k0sproject-k0smotron --control-plane k0sproject-k0smotron --infrastructure docker
+      - kubectl --context {{.CONTEXT}} wait --for=condition=Available deployment --all --all-namespaces --timeout=300s
 
   down:
     cmds:
