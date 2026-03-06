@@ -61,6 +61,7 @@ export function createScenario(deps: CreateScenarioOptions): InternalScenario {
     but: bdd.but(deps),
     generateName: (prefix: string) => generateRandomName(prefix),
     newNamespace: createNewNamespaceFn(deps),
+    useNamespace: createUseNamespaceFn(deps),
     useCluster: createUseClusterFn(deps),
     async cleanup(options?: { skip?: boolean }) {
       if (options?.skip) {
@@ -197,6 +198,31 @@ export const createQueryFn =
     }
   };
 
+export function buildNamespaceSurface(
+  scenarioDeps: CreateScenarioOptions,
+  namespaceName: string
+): Namespace {
+  const namespacedKubectl = scenarioDeps.kubectl.extends({
+    namespace: namespaceName,
+  });
+  const namespacedDeps = { ...scenarioDeps, kubectl: namespacedKubectl };
+  return {
+    name: namespaceName,
+    apply: createMutateFn(namespacedDeps, apply),
+    create: createMutateFn(namespacedDeps, create),
+    assertApplyError: createMutateFn(namespacedDeps, assertApplyError),
+    assertCreateError: createMutateFn(namespacedDeps, assertCreateError),
+    applyStatus: createOneWayMutateFn(namespacedDeps, applyStatus),
+    delete: createOneWayMutateFn(namespacedDeps, deleteResource),
+    label: createOneWayMutateFn(namespacedDeps, label),
+    get: createQueryFn(namespacedDeps, get),
+    assert: createQueryFn(namespacedDeps, assert),
+    assertAbsence: createQueryFn(namespacedDeps, assertAbsence),
+    assertList: createQueryFn(namespacedDeps, assertList),
+    assertOne: createQueryFn(namespacedDeps, assertOne),
+  };
+}
+
 export const createNewNamespaceFn =
   (scenarioDeps: CreateScenarioOptions) =>
   async (
@@ -207,24 +233,34 @@ export const createNewNamespaceFn =
       name,
       options
     );
-    const { kubectl } = scenarioDeps;
-    const namespacedKubectl = kubectl.extends({ namespace: namespaceName });
-    const namespacedDeps = { ...scenarioDeps, kubectl: namespacedKubectl };
-    return {
-      name: namespaceName,
-      apply: createMutateFn(namespacedDeps, apply),
-      create: createMutateFn(namespacedDeps, create),
-      assertApplyError: createMutateFn(namespacedDeps, assertApplyError),
-      assertCreateError: createMutateFn(namespacedDeps, assertCreateError),
-      applyStatus: createOneWayMutateFn(namespacedDeps, applyStatus),
-      delete: createOneWayMutateFn(namespacedDeps, deleteResource),
-      label: createOneWayMutateFn(namespacedDeps, label),
-      get: createQueryFn(namespacedDeps, get),
-      assert: createQueryFn(namespacedDeps, assert),
-      assertAbsence: createQueryFn(namespacedDeps, assertAbsence),
-      assertList: createQueryFn(namespacedDeps, assertList),
-      assertOne: createQueryFn(namespacedDeps, assertOne),
-    };
+    return buildNamespaceSurface(scenarioDeps, namespaceName);
+  };
+
+export const createUseNamespaceFn =
+  (scenarioDeps: CreateScenarioOptions) =>
+  async (
+    name: string,
+    options?: undefined | ActionOptions
+  ): Promise<Namespace> => {
+    const { kubectl, recorder } = scenarioDeps;
+    const description = `useNamespace("${name}")`;
+    recorder.record("ActionStart", { description });
+    let actionErr: undefined | Error;
+    try {
+      await retryUntil(() => kubectl.get("Namespace", name), {
+        ...options,
+        recorder,
+      });
+      return buildNamespaceSurface(scenarioDeps, name);
+    } catch (error) {
+      actionErr = error as Error;
+      throw error;
+    } finally {
+      recorder.record("ActionEnd", {
+        ok: actionErr === undefined,
+        error: actionErr,
+      });
+    }
   };
 
 const createUseClusterFn =

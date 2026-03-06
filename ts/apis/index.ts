@@ -550,6 +550,38 @@ export interface Scenario {
     options?: undefined | ActionOptions
   ): Promise<Cluster>;
 
+  /**
+   * Obtains a {@link Namespace} interface for an existing namespace.
+   *
+   * Unlike {@link Scenario.newNamespace}, this does **not** create the namespace
+   * and does **not** register a cleanup handler. It verifies the namespace exists
+   * (via `kubectl get namespace <name>`) and returns the same namespace-scoped
+   * DSL surface.
+   *
+   * Use this when testing resources in namespaces that kest did not create, such
+   * as system namespaces or namespaces provisioned by controllers or Helm charts.
+   *
+   * @param name - The name of the existing namespace.
+   * @param options - Retry options such as timeout and polling interval.
+   *
+   * @example
+   * ```ts
+   * const istio = await s.useNamespace("istio-system");
+   * await istio.assert({
+   *   apiVersion: "v1",
+   *   kind: "ConfigMap",
+   *   name: "istio-ca-root-cert",
+   *   test() {
+   *     expect(this.data["root-cert.pem"]).toBeDefined();
+   *   },
+   * });
+   * ```
+   */
+  useNamespace(
+    name: string,
+    options?: undefined | ActionOptions
+  ): Promise<Namespace>;
+
   // BDD(behavior-driven development) actions
 
   /**
@@ -924,13 +956,44 @@ export interface Cluster {
     cluster: ClusterReference,
     options?: undefined | ActionOptions
   ): Promise<Cluster>;
+
+  /**
+   * Obtains a {@link Namespace} interface for an existing namespace in this cluster.
+   *
+   * Unlike {@link Cluster.newNamespace}, this does **not** create the namespace
+   * and does **not** register a cleanup handler. It verifies the namespace exists
+   * (via `kubectl get namespace <name>`) and returns the same namespace-scoped
+   * DSL surface.
+   *
+   * @param name - The name of the existing namespace.
+   * @param options - Retry options such as timeout and polling interval.
+   *
+   * @example
+   * ```ts
+   * const cluster = await s.useCluster({ context: "kind-kind" });
+   * const kubeSystem = await cluster.useNamespace("kube-system");
+   * await kubeSystem.assert({
+   *   apiVersion: "v1",
+   *   kind: "ConfigMap",
+   *   name: "kube-root-ca.crt",
+   *   test() {
+   *     expect(this.data["ca.crt"]).toBeDefined();
+   *   },
+   * });
+   * ```
+   */
+  useNamespace(
+    name: string,
+    options?: undefined | ActionOptions
+  ): Promise<Namespace>;
 }
 
 /**
  * Namespace-bound API surface.
  *
- * A {@link Namespace} is typically obtained via {@link Scenario.newNamespace} or
- * {@link Cluster.newNamespace}.
+ * A {@link Namespace} is typically obtained via {@link Scenario.newNamespace},
+ * {@link Scenario.useNamespace}, {@link Cluster.newNamespace}, or
+ * {@link Cluster.useNamespace}.
  *
  * Operations are scoped by setting the kubectl namespace context (equivalent to
  * passing `kubectl -n <namespace>`).

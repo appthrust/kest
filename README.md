@@ -185,6 +185,31 @@ test("resources sync across clusters", async (s) => {
 });
 ```
 
+### Existing Namespaces
+
+When testing resources in namespaces that kest did not create (e.g. system namespaces or namespaces installed by Helm charts), use `useNamespace` to obtain the same namespace-scoped DSL without creating or cleaning up the namespace:
+
+```ts
+test("istio root cert exists", async (s) => {
+  const istio = await s.useNamespace("istio-system");
+  await istio.assert({
+    apiVersion: "v1",
+    kind: "ConfigMap",
+    name: "istio-ca-root-cert",
+    test() {
+      expect(this.data["root-cert.pem"]).toBeDefined();
+    },
+  });
+});
+```
+
+`useNamespace` is also available on `Cluster`:
+
+```ts
+const cluster = await s.useCluster({ context: "kind-kind" });
+const kubeSystem = await cluster.useNamespace("kube-system");
+```
+
 #### CAPI Dynamic Clusters
 
 Kest can resolve [Cluster API](https://cluster-api.sigs.k8s.io/) (CAPI) provisioned clusters automatically. Pass a `ClusterResourceReference` to `useCluster` and Kest will:
@@ -579,6 +604,7 @@ The top-level API surface available in every test callback.
 | `assertList(resource, options?)`                                        | Fetch a list of resources and run assertions                |
 | `assertOne(resource, options?)`                                         | Assert exactly one resource matches, then run assertions    |
 | `newNamespace(name?, options?)`                                         | Create an ephemeral namespace (supports `{ generateName }`) |
+| `useNamespace(name, options?)`                                          | Obtain a `Namespace` for an existing namespace (no cleanup) |
 | `generateName(prefix)`                                                  | Generate a random-suffix name (statistical uniqueness)      |
 | `exec(input, options?)`                                                 | Execute shell commands with optional revert                 |
 | `useCluster(ref, options?)`                                             | Create a cluster-bound API surface                          |
@@ -586,7 +612,7 @@ The top-level API surface available in every test callback.
 
 ### Namespace / Cluster
 
-Returned by `newNamespace()` and `useCluster()` respectively. They expose the same core methods (`apply`, `create`, `assertApplyError`, `assertCreateError`, `applyStatus`, `delete`, `label`, `get`, `assert`, `assertAbsence`, `assertList`, `assertOne`) scoped to their namespace or cluster context. `Cluster` additionally supports `newNamespace` and `useCluster`.
+Returned by `newNamespace()`, `useNamespace()`, and `useCluster()` respectively. They expose the same core methods (`apply`, `create`, `assertApplyError`, `assertCreateError`, `applyStatus`, `delete`, `label`, `get`, `assert`, `assertAbsence`, `assertList`, `assertOne`) scoped to their namespace or cluster context. `Cluster` additionally supports `newNamespace`, `useNamespace`, and `useCluster`.
 
 `Namespace` also exposes a `name` property:
 
@@ -1039,6 +1065,7 @@ await ns.apply({
 | Situation                                              | Approach                                  |
 | ------------------------------------------------------ | ----------------------------------------- |
 | Namespaced resource inside `newNamespace()`            | Use a fixed name (default)                |
+| Resource in pre-existing namespace (`useNamespace()`)  | Use a fixed name (default)                |
 | Same-kind resources created multiple times in one test | `s.generateName` or numbered fixed names  |
 | Cluster-scoped resource (e.g. `ClusterRole`, `CRD`)    | `s.generateName` (no namespace isolation) |
 | Fixed name causes unintended upsert / side effects     | `s.generateName`                          |
