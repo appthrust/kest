@@ -26,6 +26,7 @@ import {
   createNewNamespaceFn,
   createOneWayMutateFn,
   createQueryFn,
+  createUseNamespaceFn,
 } from "./index";
 
 function isClusterResourceReference(
@@ -56,6 +57,7 @@ export function buildClusterSurface(deps: CreateScenarioOptions): Cluster {
     assertList: createQueryFn(deps, assertList),
     assertOne: createQueryFn(deps, assertOne),
     newNamespace: createNewNamespaceFn(deps),
+    useNamespace: createUseNamespaceFn(deps),
     useCluster: (
       cluster: ClusterReference,
       options?: ActionOptions
