@@ -17,7 +17,7 @@ interface TestOptions {
   timeout?: string;
 }
 
-setDefaultTimeout(60_000);
+const defaultTimeout = Number(process.env["KEST_DEFAULT_TIMEOUT"] ?? 60_000);
 
 type Callback = (scenario: Scenario) => Promise<unknown>;
 
@@ -46,6 +46,7 @@ const preserveOnFailure = process.env["KEST_PRESERVE_ON_FAILURE"] === "1";
 
 function makeScenarioTest(runner: BunTestRunner): TestFunction {
   return (label, fn, options) => {
+    setDefaultTimeout(defaultTimeout);
     const bunTestOptions = convertTestOptions(options);
     const testFn = async () => {
       const recorder = new Recorder();
