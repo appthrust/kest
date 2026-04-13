@@ -44,3 +44,10 @@ tasks:
   typecheck:
     cmds:
       - bunx tsc --noEmit
+
+  ci:
+    cmds:
+      - bun install --frozen-lockfile
+      - task: lint
+      - task: typecheck
+      - task: test

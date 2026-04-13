@@ -1,7 +1,7 @@
-import { expect, test, describe } from "bun:test";
+import { describe, expect, test } from "bun:test";
+import { Duration } from "./duration";
 import { Recorder } from "./recording";
 import { retryUntil } from "./retry";
-import { Duration } from "./duration";
 
 test("retryUntil records success flow events", async () => {
   const recorder = new Recorder();
@@ -181,7 +181,7 @@ describe("stall detection", () => {
           callCount += 1;
           // Same prefix, different suffix after 200 chars
           const base = "x".repeat(200);
-          throw new Error(base + `-attempt-${callCount}`);
+          throw new Error(`${base}-attempt-${callCount}`);
         },
         {
           timeout: "10s",

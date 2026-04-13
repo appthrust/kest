@@ -64,7 +64,7 @@ type RetryEvent =
       | {
           readonly attempts: number;
           readonly success: false;
-          readonly reason: "timeout";
+          readonly reason: "timeout" | "stall";
           readonly error: Error;
         }
     >;

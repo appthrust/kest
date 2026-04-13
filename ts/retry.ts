@@ -67,16 +67,15 @@ const DEFAULT_STALL_TIMEOUT_MS = 30_000;
  *
  * Returns `0` when stall detection is disabled (value is `0` / `"0s"` / `"0"`).
  */
-function resolveStallTimeoutMs(
-  value: undefined | string | Duration
-): number {
+function resolveStallTimeoutMs(value: undefined | string | Duration): number {
   if (value === undefined) {
     return DEFAULT_STALL_TIMEOUT_MS;
   }
   if (typeof value === "number" && value === 0) {
     return 0;
   }
-  const dur = value instanceof Duration ? value : parseDuration(value as string);
+  const dur =
+    value instanceof Duration ? value : parseDuration(value as string);
   return dur.toMilliseconds();
 }
 
@@ -85,6 +84,34 @@ function resolveStallTimeoutMs(
  *
  * Useful for eventually-consistent systems (e.g. Kubernetes).
  */
+interface StallState {
+  lastFingerprint: string;
+  stallStartMs: number;
+  readonly stallTimeoutMs: number;
+}
+
+/**
+ * Updates stall state with a new error. Returns a stall Error if the same
+ * error has been repeating past the stall timeout; returns null otherwise.
+ */
+function checkStall(state: StallState, err: unknown): Error | null {
+  if (state.stallTimeoutMs <= 0) {
+    return null;
+  }
+  const fp = errorFingerprint(err);
+  if (fp !== state.lastFingerprint) {
+    state.lastFingerprint = fp;
+    state.stallStartMs = Date.now();
+    return null;
+  }
+  if (Date.now() - state.stallStartMs < state.stallTimeoutMs) {
+    return null;
+  }
+  return new Error(
+    `Stall detected: same error repeated for ${new Duration(state.stallTimeoutMs).toString()} (no progress). Last error: ${fp}`
+  );
+}
+
 export async function retryUntil<T>(
   fn: () => Promise<T>,
   options?: undefined | RetryOptions
@@ -95,13 +122,13 @@ export async function retryUntil<T>(
 
   const timeoutMs = timeout.toMilliseconds();
   const intervalMs = interval.toMilliseconds();
+  const deadline = Date.now() + timeoutMs;
 
-  const startedAtMs = Date.now();
-  const deadline = startedAtMs + timeoutMs;
-
-  // Stall detection state
-  let lastFingerprint = "";
-  let stallStartMs = 0;
+  const stall: StallState = {
+    lastFingerprint: "",
+    stallStartMs: 0,
+    stallTimeoutMs,
+  };
 
   let lastError: unknown;
   // The first call is not a "retry". Retry events start from the second call.
@@ -109,9 +136,8 @@ export async function retryUntil<T>(
     return await fn();
   } catch (err) {
     lastError = err;
-    // Initialize stall tracking from the very first error
-    lastFingerprint = errorFingerprint(err);
-    stallStartMs = Date.now();
+    stall.lastFingerprint = errorFingerprint(err);
+    stall.stallStartMs = Date.now();
   }
 
   let retries = 0;
@@ -119,13 +145,10 @@ export async function retryUntil<T>(
   recorder?.record("RetryStart", {});
 
   while (Date.now() < deadline) {
-    const nowMs = Date.now();
-    const remainingMs = Math.max(0, deadline - nowMs);
-    const sleepMs = Math.min(intervalMs, Math.max(0, remainingMs));
+    const sleepMs = Math.min(intervalMs, Math.max(0, deadline - Date.now()));
     if (sleepMs > 0) {
       await Bun.sleep(sleepMs);
     }
-
     if (Date.now() >= deadline) {
       break;
     }
@@ -143,27 +166,15 @@ export async function retryUntil<T>(
       return value;
     } catch (err) {
       lastError = err;
-
-      // Stall detection: check if error fingerprint changed
-      if (stallTimeoutMs > 0) {
-        const fp = errorFingerprint(err);
-        if (fp !== lastFingerprint) {
-          // Progress detected — error changed, reset stall timer
-          lastFingerprint = fp;
-          stallStartMs = Date.now();
-        } else if (Date.now() - stallStartMs >= stallTimeoutMs) {
-          // Same error for too long — bail out early
-          const stallError = new Error(
-            `Stall detected: same error repeated for ${new Duration(stallTimeoutMs).toString()} (no progress). Last error: ${fp}`
-          );
-          recorder?.record("RetryEnd", {
-            attempts: retries,
-            error: stallError,
-            success: false,
-            reason: "stall",
-          });
-          throw stallError;
-        }
+      const stallError = checkStall(stall, err);
+      if (stallError) {
+        recorder?.record("RetryEnd", {
+          attempts: retries,
+          error: stallError,
+          success: false,
+          reason: "stall",
+        });
+        throw stallError;
       }
     }
   }
