@@ -1308,6 +1308,19 @@ export interface ActionOptions {
    * Delay between retry attempts.
    */
   readonly interval?: undefined | string;
+
+  /**
+   * Maximum time the same error can repeat before bailing out early.
+   *
+   * When a retry loop keeps hitting the same error (e.g. a broken controller
+   * returning "not found" repeatedly), stall detection short-circuits the
+   * loop instead of waiting for the full timeout.
+   *
+   * Set to `"0s"` to disable stall detection.
+   *
+   * @default "30s"
+   */
+  readonly stallTimeout?: undefined | string;
 }
 
 /**
