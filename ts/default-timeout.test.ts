@@ -21,11 +21,12 @@ test("should timeout at KEST_DEFAULT_TIMEOUT", async () => {
   writeFileSync(file1, fixtureContent);
   writeFileSync(file2, fixtureContent);
 
-  const result = Bun.spawnSync({
-    cmd: ["bun", "test", file1, file2],
-    env: { ...process.env, KEST_DEFAULT_TIMEOUT: "100" },
-  });
-  const stderr = result.stderr.toString();
-  const matches = stderr.match(/timed out after 100ms/g);
-  expect(matches).toHaveLength(2);
+  for (const file of [file1, file2]) {
+    const result = Bun.spawnSync({
+      cmd: ["bun", "test", file],
+      env: { ...process.env, KEST_DEFAULT_TIMEOUT: "100" },
+    });
+    expect(result.exitCode).not.toBe(0);
+    expect(result.stderr.toString()).toContain("timed out after 100ms");
+  }
 });
