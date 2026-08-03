@@ -22,9 +22,9 @@ export interface RetryOptions {
    * returning "not found" 1,500 times), stall detection short-circuits the
    * loop instead of waiting for the full timeout.
    *
-   * Set to `0` or `"0s"` to disable stall detection.
+   * Omit this option or set it to `0` / `"0s"` to disable stall detection.
    *
-   * @default "30s"
+   * @default disabled
    */
   stallTimeout?: undefined | string | Duration;
 
@@ -60,16 +60,16 @@ function errorFingerprint(err: unknown): string {
   return String(err).slice(0, 200);
 }
 
-const DEFAULT_STALL_TIMEOUT_MS = 30_000;
-
 /**
  * Resolves the stall-timeout option.
  *
  * Returns `0` when stall detection is disabled (value is `0` / `"0s"` / `"0"`).
  */
-function resolveStallTimeoutMs(value: undefined | string | Duration): number {
+export function resolveStallTimeoutMs(
+  value: undefined | string | Duration
+): number {
   if (value === undefined) {
-    return DEFAULT_STALL_TIMEOUT_MS;
+    return 0;
   }
   if (typeof value === "number" && value === 0) {
     return 0;

@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { Duration } from "./duration";
 import { Recorder } from "./recording";
-import { retryUntil } from "./retry";
+import { resolveStallTimeoutMs, retryUntil } from "./retry";
 
 test("retryUntil records success flow events", async () => {
   const recorder = new Recorder();
@@ -69,6 +69,11 @@ test("retryUntil records timeout flow events", async () => {
 });
 
 describe("stall detection", () => {
+  test("is opt-in so ordinary eventual convergence uses the action timeout", () => {
+    expect(resolveStallTimeoutMs(undefined)).toBe(0);
+    expect(resolveStallTimeoutMs("30s")).toBe(30_000);
+  });
+
   test("bails early when the same error repeats beyond stallTimeout", async () => {
     const recorder = new Recorder();
 

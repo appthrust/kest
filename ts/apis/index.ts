@@ -1316,9 +1316,9 @@ export interface ActionOptions {
    * returning "not found" repeatedly), stall detection short-circuits the
    * loop instead of waiting for the full timeout.
    *
-   * Set to `"0s"` to disable stall detection.
+   * Omit this option or set it to `"0s"` to disable stall detection.
    *
-   * @default "30s"
+   * @default disabled
    */
   readonly stallTimeout?: undefined | string;
 }

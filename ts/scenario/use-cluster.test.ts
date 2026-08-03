@@ -272,9 +272,7 @@ describe("resolveCluster", () => {
       kind: "Cluster",
       metadata: { name: "workload-2", namespace: "capi-system" },
       status: {
-        v1beta2: {
-          conditions: [{ type: "Available", status: "True" }],
-        },
+        conditions: [{ type: "Available", status: "True" }],
       },
     });
     kubectl.onGet(() => readyYaml);
