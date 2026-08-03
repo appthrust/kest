@@ -124,10 +124,7 @@ export async function resolveCluster(
             | undefined;
           targetType = "Ready";
         } else if (version === "v1beta2") {
-          const v1beta2 = status["v1beta2"] as
-            | Record<string, unknown>
-            | undefined;
-          conditions = v1beta2?.["conditions"] as
+          conditions = status["conditions"] as
             | Array<Record<string, unknown>>
             | undefined;
           targetType = "Available";
